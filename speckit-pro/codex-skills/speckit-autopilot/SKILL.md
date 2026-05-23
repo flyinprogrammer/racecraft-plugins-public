@@ -2,10 +2,25 @@
 name: speckit-autopilot
 description: >
   Autonomous SpecKit workflow executor. Reads a populated workflow
-  file and runs all 7 SDD phases with programmatic gate validation,
-  multi-agent consensus resolution, and auto-commits. Requires
-  SpecKit CLI installed, constitution created, and a populated
-  workflow file.
+  file and runs all 7 SDD phases (specify → clarify → plan →
+  checklist → tasks → analyze → implement) with programmatic gate
+  validation, multi-agent consensus resolution, and auto-commits.
+  Use when the user says "run autopilot", "execute workflow",
+  "autonomous speckit", "autonomous execution", "kick off autopilot",
+  "start the autonomous pipeline", "drive it through all the SDD
+  phases", "run the whole thing autonomously", "full end-to-end
+  speckit run", or hands over a populated SPEC-NNN-workflow.md file
+  ready for end-to-end execution with gate validation between phases.
+  Requires SpecKit CLI installed, constitution created, and a
+  populated workflow file. Do NOT fire for methodology questions
+  about the consensus protocol, simplicity-gate troubleshooting,
+  spec-writing coaching, technical-roadmap creation, status checks
+  on existing specs, PR-review thread resolution, feature
+  decomposition, checklist domain selection, project setup ("specify
+  init"), interview-style pre-spec scoping ("grill me", "interview
+  me"), or unrelated coding tasks (unit tests, MCP tools, linting,
+  build errors) — those route to $speckit-coach, $speckit-setup,
+  $speckit-status, $speckit-resolve-pr, $grill-me, or no skill at all.
 ---
 
 # SpecKit Autopilot — Autonomous Execution Engine
@@ -656,9 +671,44 @@ placeholder shown below.
   "Phase 6: Analyze - Consensus"                ← MANDATORY after analyze
   "Phase 7: Implement - Pending task decomposition" ← before tasks.md exists
   "Phase 7: <Group> (<task IDs>)"               ← parsed from tasks.md
-  "Post: Verification and Status Sync"
-  "Post: <task name>"                           ← from post-impl table
+  "Post: <item name>"                           ← from canonical list below
 ```
+
+### Canonical Post-Implementation Item List — ENUMERATE ALL OF THESE
+
+The autopilot has a complete, prescribed set of post-implementation
+items. Every item below MUST appear in `update_plan` and
+`autopilot-state.json` unless its required extension is provably
+absent. **Do NOT omit any of these, do NOT collapse them, do NOT
+defer them — the user expects to see all of them in the plan
+panel before Phase 1 starts.** When an extension is missing, still
+create the item but mark it `skipped: <extension> not installed`.
+
+```text
+  "Post: Doctor Extension Check"        ← doctor / speckit-utils ext
+  "Post: Verify Implementation"         ← verify ext
+  "Post: Verify Tasks Phantom Check"    ← verify-tasks ext
+  "Post: Code Review"                   ← review ext
+  "Post: Integration Suite"             ← always required (no ext)
+  "Post: Cleanup"                       ← cleanup ext
+  "Post: Reviewability Diff Gate"       ← always required (no ext)
+  "Post: PR Body Generation"            ← always required (no ext)
+  "Post: PR Creation"                   ← always required (no ext)
+  "Post: Review Remediation"            ← always required (no ext)
+  "Post: Retrospective"                 ← retrospective ext (FINAL STEP)
+```
+
+Detection rule per extension item: check `.specify/extensions.yml`
+(or `.registry`) for the extension's `enabled: true` flag, OR confirm
+the extension directory exists. If neither, the item still appears
+in the plan with status `skipped: <ext-name> not installed`. Never
+silently drop it.
+
+**Verify item-list completeness before starting Phase 1**: count
+the 11 entries above and confirm every single one is present in
+both `update_plan` and `autopilot-state.json` (in addition to all
+Phase / Consensus items). If any are missing, ADD them before
+advancing.
 
 **CRITICAL — phase family coverage is mandatory:**
 
@@ -725,7 +775,17 @@ items. **Never omit consensus items.**
     {"step": "Phase 6: Analyze", "status": "pending"},
     {"step": "Phase 6: Analyze - Consensus", "status": "pending"},
     {"step": "Phase 7: Implement - Pending task decomposition", "status": "pending"},
-    {"step": "Post: Verification and Status Sync", "status": "pending"}
+    {"step": "Post: Doctor Extension Check", "status": "pending"},
+    {"step": "Post: Verify Implementation", "status": "pending"},
+    {"step": "Post: Verify Tasks Phantom Check", "status": "pending"},
+    {"step": "Post: Code Review", "status": "pending"},
+    {"step": "Post: Integration Suite", "status": "pending"},
+    {"step": "Post: Cleanup", "status": "pending"},
+    {"step": "Post: Reviewability Diff Gate", "status": "pending"},
+    {"step": "Post: PR Body Generation", "status": "pending"},
+    {"step": "Post: PR Creation", "status": "pending"},
+    {"step": "Post: Review Remediation", "status": "pending"},
+    {"step": "Post: Retrospective", "status": "pending"}
   ]
 }
 ```
@@ -827,26 +887,32 @@ POST-IMPLEMENTATION (after all 7 phases complete):
     NEVER invoke skills directly in your context. Rule 1 applies
     here too.
 
-    Post-implementation items (execute in order):
+    Post-implementation items (execute in order — every row below
+    is an item that MUST appear in the plan per Step 1.1's Canonical
+    Post-Implementation Item List):
 
     | # | Item | Requires | Command |
     |---|------|----------|---------|
-    | 10 | Verify Implementation | verify ext | $speckit-verify |
-    | 11 | Code Review | review ext | $speckit-review |
-    | 12 | Integration Suite | (none) | Step 3.1 direct |
-    | 13 | Cleanup | cleanup ext | $speckit-cleanup |
-    | 14 | Reviewability Diff Gate | (none) | reviewability-gate.sh diff |
-    | 15 | PR Body Generation | (none) | generate-pr-body.sh |
-    | 16 | PR Creation | (none) | Step 3.2 direct |
-    | 17 | Review Remediation | (none) | Step 3.3 loop |
-    | 18 | Retrospective | retrospective ext | $speckit-retrospective-analyze |
+    | 10 | Doctor Extension Check | doctor / speckit-utils ext | $speckit-speckit-utils-doctor (or $speckit-doctor) |
+    | 11 | Verify Implementation | verify ext | $speckit-verify |
+    | 12 | Verify Tasks Phantom Check | verify-tasks ext | $speckit-verify-tasks |
+    | 13 | Code Review | review ext | $speckit-review |
+    | 14 | Integration Suite | (none) | Step 3.1 direct |
+    | 15 | Cleanup | cleanup ext | $speckit-cleanup |
+    | 16 | Reviewability Diff Gate | (none) | reviewability-gate.sh diff |
+    | 17 | PR Body Generation | (none) | generate-pr-body.sh |
+    | 18 | PR Creation | (none) | Step 3.2 direct |
+    | 19 | Review Remediation | (none) | Step 3.3 loop |
+    | 20 | Retrospective | retrospective ext | $speckit-retrospective-analyze |
 
     Extension items: Spawn `phase-executor` with instructions
     to run the `$speckit-*` extension skill for SPEC-XXX and return a summary.
-    Non-extension items (12, 14, 15, 16, 17): execute directly per Step 3.
-    Missing extension: log warning and skip (don't fail).
+    Non-extension items (14, 16, 17, 18, 19): execute directly per Step 3.
+    Missing extension: log warning and mark the item "skipped: <ext> not
+    installed". The item MUST still appear in the plan — never drop it
+    silently.
     See [post-implementation-codex.md](./references/post-implementation-codex.md) for detailed prompts.
-    Item 18 is the FINAL STEP.
+    Item 20 (Retrospective) is the FINAL STEP.
 ```
 
 **Dynamic updates:** If consensus reveals new questions or

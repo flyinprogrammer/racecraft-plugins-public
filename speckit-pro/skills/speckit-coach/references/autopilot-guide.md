@@ -35,7 +35,7 @@ This creates `.specify/`, templates, and slash commands.
 ### 3. Constitution Created
 
 ```bash
-/speckit.constitution
+/speckit-constitution
 ```
 
 The constitution must exist at
@@ -103,16 +103,16 @@ prerequisite validation via `.specify/scripts/bash/`).
 Main session (speckit-autopilot skill loaded)
     │
     ├── Simple phases → pass workflow prompt to /speckit.* via Skill
-    │   ├── Specify → Skill("speckit.specify", args: "<workflow prompt>")
-    │   ├── Plan    → Skill("speckit.plan", args: "<workflow prompt>")
-    │   └── Tasks   → Skill("speckit.tasks", args: "<workflow prompt>")
+    │   ├── Specify → Skill("speckit-specify", args: "<workflow prompt>")
+    │   ├── Plan    → Skill("speckit-plan", args: "<workflow prompt>")
+    │   └── Tasks   → Skill("speckit-tasks", args: "<workflow prompt>")
     │
     ├── Multi-prompt phases → one Skill() per session/domain
-    │   ├── Clarify   → Skill("speckit.clarify") per session + consensus
-    │   ├── Checklist  → Skill("speckit.checklist") per domain + consensus
-    │   └── Analyze    → Skill("speckit.analyze") + consensus per finding
+    │   ├── Clarify   → Skill("speckit-clarify") per session + consensus
+    │   ├── Checklist  → Skill("speckit-checklist") per domain + consensus
+    │   └── Analyze    → Skill("speckit-analyze") + consensus per finding
     │
-    └── Implement → Skill("speckit.implement") or project-specific agent
+    └── Implement → Skill("speckit-implement") or project-specific agent
         └── Parallel sub-agents with worktree isolation for [P] tasks
 ```
 
@@ -272,13 +272,13 @@ file's `Branch` field.
 
 ### Why Specify Needs Special Handling
 
-The `/speckit.specify` command normally calls
+The `/speckit-specify` command normally calls
 `create-new-feature.sh` to create a branch. On a worktree or
 existing feature branch, this must be skipped.
 
 When `ON_FEATURE_BRANCH` is `true`, the autopilot prefixes
 the workflow prompt with an instruction telling the command to
-skip branch creation, then invokes `Skill("speckit.specify")`
+skip branch creation, then invokes `Skill("speckit-specify")`
 normally. The command's LLM reads the prefix and proceeds
 directly to spec content generation.
 
@@ -452,7 +452,7 @@ uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
 specify init --ai claude
 
 # Create constitution (if not already)
-/speckit.constitution
+/speckit-constitution
 
 # Create technical roadmap (for multi-spec projects)
 /speckit-pro:coach help me create a technical roadmap
@@ -517,7 +517,7 @@ startup (Step 0.11). This matters because:
 
 **Presets** may modify template content. If a preset overrides
 `tasks-template.md` (e.g., to enforce TDD or add extra
-sections), the `/speckit.tasks` command will generate tasks
+sections), the `/speckit-tasks` command will generate tasks
 with different structure. The autopilot's task parsing should
 handle any template variant.
 
