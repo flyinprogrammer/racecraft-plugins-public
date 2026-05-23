@@ -19,9 +19,11 @@ SHARED_SKILLS=(speckit-autopilot speckit-coach)
 COMMAND_SKILL_MAP=(
   "autopilot:speckit-autopilot"
   "coach:speckit-coach"
-  "setup:speckit-setup"
+  "scaffold-spec:speckit-scaffold-spec"
   "status:speckit-status"
   "resolve-pr:speckit-resolve-pr"
+  "install:speckit-install"
+  "upgrade:speckit-upgrade"
 )
 
 # ===========================================================================
@@ -169,7 +171,7 @@ fi
 section "Codex Skill Metadata Sidecars"
 
 if [ -d "$CODEX_SKILLS_DIR" ]; then
-  for skill_name in "${SHARED_SKILLS[@]}" speckit-setup speckit-status speckit-resolve-pr; do
+  for skill_name in "${SHARED_SKILLS[@]}" speckit-scaffold-spec speckit-status speckit-resolve-pr speckit-install speckit-upgrade; do
     set_test "codex-skills/${skill_name}/agents/openai.yaml exists"
     assert_file_exists "$CODEX_SKILLS_DIR/${skill_name}/agents/openai.yaml"
   done
