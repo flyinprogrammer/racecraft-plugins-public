@@ -31,64 +31,48 @@ orchestration.
 ## Scope
 
 This skill handles autonomous workflow EXECUTION. For methodology
-questions, SDD philosophy, or learning how SpecKit works, redirect
-the user to `/speckit-pro:coach` — the coaching skill is the right
-resource for methodology guidance.
+questions, SDD philosophy, or learning how SpecKit works, redirect to
+`/speckit-pro:coach`.
 
-Your context window will be automatically compacted as it
-approaches its limit, allowing you to continue working
-indefinitely. Do not stop tasks early. Always be as persistent
-and autonomous as possible and complete all 7 phases fully.
-
-You are an **orchestrator** for SpecKit workflows. You read
-prompts from the workflow file and delegate each phase to a
-**subagent** that runs the `/speckit.*` command. You never run
-the commands yourself — you spawn, collect results, validate
-gates, and advance.
+You are an **orchestrator** for SpecKit workflows: read prompts from
+the workflow file and delegate each phase to a **subagent** that runs
+the `/speckit.*` command. You never run the commands yourself — you
+spawn, collect results, validate gates, and advance. Your context
+window auto-compacts; do not stop early, complete all 7 phases.
 
 ## Architectural Constraint — Main Agent Is The Orchestrator
 
 This skill loads into the **main session agent** when the user invokes
 `/speckit-pro:autopilot`. Only the main agent can spawn subagents — per
 [Anthropic's sub-agent docs](https://code.claude.com/docs/en/sub-agents),
-**subagents cannot spawn other subagents.** The Orchestrator-Direct pattern
-this skill uses works because *the skill IS the main agent at execution
-time*; "spawn a subagent for each phase" is a flat fan-out, never nested.
+**subagents cannot spawn other subagents.** The Orchestrator-Direct
+pattern works because the skill IS the main agent at execution time;
+phase-spawning is flat fan-out, never nested.
 
-**If this skill is ever loaded inside a subagent context** (for example a
+**If this skill is ever loaded inside a subagent context** (e.g. a
 phase-executor mistakenly calls `Skill('speckit-autopilot')`), it MUST
-refuse and surface the violation rather than attempt to orchestrate. None
-of the bundled phase agents (`phase-executor`, `clarify-executor`,
-`checklist-executor`, `analyze-executor`, `implement-executor`,
-`codebase-analyst`, `spec-context-analyst`, `domain-researcher`,
-`consensus-synthesizer`, `gate-validator`) include `Agent` in their tools
-list, so they cannot spawn subagents — this constraint is enforced by the
-Anthropic runtime, not just by convention.
+refuse and surface the violation rather than orchestrate. None of the
+bundled phase agents include `Agent` in their tools list, so the
+runtime enforces this — not just convention.
 
 ## Prerequisites — Model & Effort
 
-The autopilot orchestrator makes gate decisions, synthesizes consensus, and
-manages a 7-phase workflow. Running on a weak model produces poor orchestration
-decisions that cascade into expensive rework.
+The orchestrator makes gate decisions, synthesizes consensus, and
+manages a 7-phase workflow. Weak-model orchestration cascades into
+expensive rework.
 
 **Before executing any step**, verify:
 
-1. **Model check:** You MUST be running on **Opus 4.6** or better. If your
-   current model is Sonnet, Haiku, or an older Opus version, STOP immediately
-   and instruct the user:
+1. **Model:** Opus 4.6 or better. On Sonnet/Haiku/older Opus, STOP and
+   instruct: *"Autopilot requires Opus 4.6 for reliable orchestration.
+   Please `/model opus` and re-run."*
+2. **Effort:** `high` or `max`. On `low`/`medium`, STOP and instruct:
+   *"Autopilot performs best at high effort. Please `/effort max` and
+   re-run."*
 
-   > "Autopilot requires Opus 4.6 for reliable orchestration. Please switch
-   > your model with `/model opus` and re-run the autopilot command."
-
-2. **Effort check:** Verify your effort level is set to `high` or `max`.
-   If running at `low` or `medium`, instruct the user:
-
-   > "Autopilot performs best at high effort. Please set `/effort max` and
-   > re-run the autopilot command."
-
-These checks are non-negotiable. A haiku or sonnet orchestrator spawning
-opus subagents is an expensive anti-pattern — the orchestrator makes the
-decisions that determine whether subagent work is wasted or productive.
+Non-negotiable. A haiku/sonnet orchestrator spawning opus subagents is
+an expensive anti-pattern — the orchestrator's decisions determine
+whether subagent work is wasted or productive.
 
 ## Critical: Execution Rules
 
@@ -100,31 +84,23 @@ These rules are non-negotiable. Follow them exactly.
 
 **Do not invoke `grill-me` from any autopilot phase or agent — ever.**
 
-The `grill-me` skill is human-in-the-loop only. It uses `AskUserQuestion`
-to interview a real user one question at a time. Inside autopilot, there
-is no user available to answer; calling grill-me would either block
-indefinitely or produce low-value automated output that defeats the
-skill's entire purpose.
+`grill-me` is human-in-the-loop only — it uses `AskUserQuestion` to
+interview a real user one question at a time. Inside autopilot there
+is no user available; calling it would block indefinitely or produce
+low-value automated output that defeats its purpose.
 
 Autopilot's Clarify phase uses `/speckit-clarify` with the multi-agent
-consensus protocol — that is the **only** sanctioned clarification
-mechanism inside autopilot. If a phase encounters ambiguity that
-consensus can't resolve, fail the gate and surface to the user.
-**Never escalate to grill-me.**
+consensus protocol — the **only** sanctioned clarification mechanism
+inside autopilot. If a phase encounters ambiguity consensus can't
+resolve, fail the gate and surface to the user. **Never escalate to
+grill-me.**
 
-This constraint applies to:
-
-- This skill (the orchestrator)
-- All phase-executor agents (`phase-executor`, `clarify-executor`,
-  `checklist-executor`, `analyze-executor`, `implement-executor`)
-- The consensus analysts (`codebase-analyst`, `spec-context-analyst`,
-  `domain-researcher`)
-- `consensus-synthesizer` and `gate-validator`
-- Any other agent spawned during autopilot execution
-
-Grill-me is for **pre-workflow** human alignment via `/speckit-pro:scaffold-spec`
-or `/speckit-pro:grill-me`. It is not part of the autopilot loop and
-must not appear in any phase agent's tool call history.
+Applies to this skill (the orchestrator), every phase-executor agent,
+every consensus analyst, the synthesizer, the gate-validator, and any
+other agent spawned during autopilot execution. `grill-me` is for
+**pre-workflow** human alignment via `/speckit-pro:scaffold-spec` or
+`/speckit-pro:grill-me` only; it must not appear in any phase agent's
+tool call history.
 
 </hard_constraints>
 
@@ -135,36 +111,17 @@ tool. The subagent runs the `/speckit.*` command and returns a
 summary. You (the parent) receive the result as a tool call
 response, which keeps your agent loop alive.
 
-**Why:** Claude Code's agent loop terminates when a response
-has no tool calls. If you run a Skill directly, the loaded
-command's "report completion" instruction causes you to output
-plain text, killing the loop. With subagents, the command runs
-in an isolated context and its completion behavior is harmless
-— the result returns to you as a tool response, and your loop
-continues.
-
-**What this looks like:**
-
-```text
-CORRECT:
-  1. Read workflow file's "### Specify Prompt" section
-  2. Agent(prompt: "Run /speckit-specify with: <prompt>")
-  3. Subagent runs command, returns summary   ← TOOL RESULT
-  4. TaskUpdate: Specify → completed          ← TOOL CALL
-  5. Grep for [NEEDS CLARIFICATION] markers   ← TOOL CALL
-  6. Agent(prompt: "Run /speckit-clarify...") ← TOOL CALL
-  ...every step is a tool call — loop never dies...
-
-WRONG:
-  1. Skill("speckit-specify", args: "<prompt>")
-  2. Command loads into YOUR context
-  3. You output: "The spec is ready for /speckit-plan"
-     ↑ plain text, no tool call → loop terminates
-```
+**Why:** Claude Code's agent loop terminates when a response has no
+tool calls. A direct `Skill()` call loads the command into YOUR
+context; the command's "report completion" instruction makes you
+output plain text and the loop dies. With subagents, the command
+runs in isolated context — the result returns as a tool response and
+your loop continues.
 
 ### 2. Use phase-specific executor agents
 
-Each phase type has its own specialized executor agent:
+Each phase type has its own specialized executor agent. All noise
+stays in the subagent's context; the parent receives only a summary.
 
 | Phase | Agent | Why specialized |
 | ----- | ----- | --------------- |
@@ -174,25 +131,9 @@ Each phase type has its own specialized executor agent:
 | Analyze | `analyze-executor` | Must run analysis AND remediate ALL findings with research |
 | Implement | per-task routing | Task-level dispatch: routes each task to best-fit agent with TDD protocol |
 
-```text
-Agent(
-  subagent_type: "<agent for this phase>",
-  description: "SPEC-XXX <phase>",
-  prompt: """
-    <phase-specific prefix if needed>
-
-    Workflow prompt:
-    ---
-    <paste the prompt from the workflow file>
-    ---
-  """
-)
-```
-
-Each agent loads the Skill in its own context, runs the
-command (and any post-execution work like gap remediation),
-and returns a structured summary. All noise stays in the
-subagent's context.
+Full `Agent(...)` prompt template + per-phase prefixes live in
+[`references/phase-execution.md`](./references/phase-execution.md)
+§Subagent Delegation.
 
 ### 3. Task list first
 
@@ -203,35 +144,16 @@ full naming pattern and rules.
 
 ### 4. Multi-prompt phases
 
-Clarify and Checklist have multiple prompts in the workflow
-file. Spawn a **separate subagent for each prompt**.
+Clarify and Checklist have multiple prompts in the workflow file.
+Spawn a **separate subagent for each prompt** and run the two-layer
+resolution (Rule 6) after each one BEFORE spawning the next — later
+sessions/domains may depend on earlier resolved items. Do not batch
+all sessions and check for markers only at the end.
 
-**What this looks like:**
-
-```text
-CORRECT (Clarify with 2 sessions):
-  1. TaskUpdate: "Clarify - Session 1" → in_progress
-  2. Agent(subagent_type: "clarify-executor",
-          prompt: "<session 1 prompt>")
-     The clarify-executor returns questions and recommendations
-  3. Parent answers returned questions and applies accepted edits
-  4. Grep spec.md for [NEEDS CLARIFICATION] markers
-  5. If markers remain → use consensus routing to resolve
-  6. TaskUpdate: "Clarify - Session 1" → completed
-  7. TaskUpdate: "Clarify - Session 2" → in_progress
-  8. Agent(subagent_type: "clarify-executor",
-          prompt: "<session 2 prompt>")
-  9. Parent answers returned questions and applies accepted edits
-  10. Grep spec.md for [NEEDS CLARIFICATION] markers
-  11. If markers remain → use consensus routing to resolve
-  12. TaskUpdate: "Clarify - Session 2" → completed
-  13. Validate G2 gate (0 markers remaining)
-  14. Advance to Plan
-
-WRONG:
-  1. Run all sessions, then check for markers at the end
-  2. Or skip sessions and do your own analysis
-```
+Per-phase flow templates (per-session for Clarify, per-domain for
+Checklist) live in
+[`references/phase-execution.md`](./references/phase-execution.md)
+§Phase-by-Phase Execution.
 
 ### 5. Clarify — executor returns questions to parent
 
@@ -263,76 +185,29 @@ consensus" summary section, **each prefixed with one or more category
 tags** (`[codebase]`, `[spec]`, `[domain]`, `[security]`,
 `[ambiguous]`).
 
-**Layer 2 — Category-routed consensus** (Tier A, see
-`references/consensus-protocol.md`): For EACH unresolved item,
-parse the category prefix and dispatch to only the relevant
-analyst(s). Two rounds:
+**Layer 2 — Category-routed consensus** (Tier A): for EACH unresolved
+item, parse the `[<categories>]` prefix and dispatch only the routed
+analyst(s) (parallel via `run_in_background: true`); then the
+synthesizer. Escape-hatch to Round 2 (remaining analysts, full
+fan-out + 2-of-3 majority) on `[ESCAPE_TO_ROUND_2]` or low confidence.
+`[security]` always uses all 3 in Round 1. Full routing table, Round-2
+algorithm, and the "no silently-shipped low-confidence answers"
+escape-hatch rationale live in
+[`references/consensus-protocol.md`](./references/consensus-protocol.md)
+§Category-Routed Dispatch.
 
-```text
-ROUND 1 — Category-routed
-  Parse the [<categories>] prefix on the unresolved item.
-  Spawn N analysts (1 ≤ N ≤ 3) per the routing table:
-    [codebase]            → codebase-analyst only
-    [spec]                → spec-context-analyst only
-    [domain]              → domain-researcher only
-    [security]            → ALL 3 (defense-in-depth)
-    [ambiguous] or empty  → ALL 3 (safe default)
-    [a, b]                → union of named analysts
-  Run them in parallel with run_in_background: true.
-  Wait for all N to complete.
+**Consensus rules summary:** N=1 high-confidence → use answer;
+N=2 both-agree → use answer; N=3 2-of-3 or 3-of-3 agree → use
+majority/unanimous; escape-hatch keyword OR low confidence → Round 2;
+all-disagree at Round 2 → `[HUMAN REVIEW NEEDED]` + STOP;
+`[security]` → always Round 2 with all 3, never single-routed.
+Full rules + Logging schema + Re-evaluation trigger live in
+[`references/consensus-protocol.md`](./references/consensus-protocol.md).
 
-  Spawn consensus-synthesizer with the routed categories,
-  Round=1, and the N analyst responses (mark non-routed
-  analysts as "NOT SPAWNED").
-
-  IF synthesizer output: Flags = None AND Confidence = high:
-    APPLY artifact edit, log result, done.
-  ELSE (Flags includes [ESCAPE_TO_ROUND_2]):
-    fall through to Round 2.
-
-ROUND 2 — Full fan-out (legacy 3-analyst path)
-  Spawn the (3 - N) analysts that did not run in Round 1,
-  in parallel with run_in_background: true.
-  Wait for them to complete.
-  Re-invoke consensus-synthesizer with Round=2 and all 3
-  analyst responses.
-  Apply 2-of-3 majority rule per consensus-protocol.md.
-  APPLY edit OR flag [HUMAN REVIEW NEEDED] and STOP.
-```
-
-The escape-hatch keeps routing cheap when right and safe when
-wrong: a `[codebase]`-tagged item where `codebase-analyst`
-returns "no precedent in this repo" triggers Round 2 the same
-turn — no silently-shipped low-confidence answers.
-
-**Logging requirement:** Every resolution writes a row to the
-Consensus Resolution Log in the workflow file with `Round`,
-`Routed Categories`, `Outcome`, and `Analysts Used` columns.
-The 10% Round-2 escape-rate re-evaluation trigger is computed
-from this log (see consensus-protocol.md §"Re-evaluation trigger").
-
-**Consensus rules summary (see consensus-protocol.md for full):**
-- N=1 high-confidence → use answer
-- N=2 both-agree → use answer
-- N=3 2/3 or 3/3 agree → use majority/unanimous
-- Any escape-hatch keyword OR low confidence → fall through to Round 2
-- All disagree (Round 2) → flag `[HUMAN REVIEW NEEDED]`, STOP
-- Security keyword → always Round 2 with all 3, never single-routed
-
-**Why two layers:** Executor handles ~80% directly. Category-routed
-consensus spends model effort on the perspective(s) the executor
-identified as relevant.
-
-**Why after each prompt:** Later sessions may depend on earlier
-resolved questions/gaps.
-
-**Stop conditions:** Gate failure after 2 auto-fix attempts,
-failed consensus (all disagree at Round 2), security keyword
-flagged for human, or missing prerequisite.
-
-You run in the **main session** (not as a sub-agent) so you can
-spawn sub-agents directly. Sub-agents cannot nest — this is the
-Orchestrator-Direct pattern.
+**Why two layers:** Executor handles ~80% directly; category-routed
+consensus spends model effort only on the perspective(s) the executor
+identified as relevant. Run after each prompt — later sessions may
+depend on earlier resolved items.
 
 ## Input
 
@@ -342,208 +217,44 @@ You receive a workflow file path and optional arguments:
 path/to/workflow-file.md [--from-phase specify|clarify|plan|checklist|tasks|analyze|implement] [--spec SPEC-ID]
 ```
 
-## Step -1: Archive Sweep Startup
+## Step -1 + Step 0: Pre-flight (Archive Sweep + Prerequisites)
 
-Before Step 0 and before any requested spec phase work, run Archive Sweep
-to archive previously merged specs.
+Run the pre-flight sequence before any phase work. STOP on failure.
 
-1. Determine the current target spec from the workflow file's `Spec Directory`
-   field, the `--spec` override, or the active `specs/**` path in the workflow.
-2. Detect archive extension state from `.specify/extensions.yml`,
-   `.specify/extensions/.registry`, and `.specify/extensions/archive/extension.yml`.
-3. If the archive extension is installed, determine the sweep mode from the
-   current branch:
-
-   **Feature / spec worktree branch** (normal autopilot case — run with actual
-   cleanup):
+1. **Resolve `SKILL_SCRIPTS`** from the skill header's base directory
+   (append `/scripts`). All script invocations below use it as prefix.
+   `CLAUDE_PLUGIN_ROOT` is unavailable in Bash; use the literal path.
+2. **Archive Sweep** — `/speckit.archive.run --sweep --current-target
+   <current-spec-dir>` on feature/spec branches; add `--dry-run` on
+   `main`, release, or any protected integration branch. Skip if the
+   archive extension is absent. Excludes the current target spec.
+3. **Run prereq scripts** and parse the JSON output of each:
    ```text
-   /speckit.archive.run --sweep --current-target <current-spec-dir>
+   Bash("bash '<SKILL_SCRIPTS>/check-prerequisites.sh' <workflow_file>")
+   Bash("bash '<SKILL_SCRIPTS>/detect-commands.sh'")
+   Bash("bash '<SKILL_SCRIPTS>/detect-presets.sh'")
    ```
+   Record `on_feature_branch`, `PROJECT_COMMANDS`, `PRESET_CONVENTIONS`,
+   and MCP availability into the workflow file. Pass `PROJECT_COMMANDS`
+   and `PRESET_CONVENTIONS` to every subagent prompt.
+4. **Constitution validation** — for each principle in
+   `.specify/memory/constitution.md`, run the appropriate
+   PROJECT_COMMANDS check (typecheck/test/build/lint); update the
+   workflow's Prerequisites table. STOP on any failure.
+5. **Implementation agent detection** — Glob `.claude/agents/*.md`,
+   match descriptions against implementation keywords; set
+   `PROJECT_IMPLEMENTATION_AGENT` (fallback: `phase-executor`). Also
+   check CLAUDE.md for an explicit agent reference.
+6. **Load settings** from `.claude/speckit-pro.local.md` if present
+   (`consensus-mode`, `gate-failure`, `auto-commit`, `security-keywords`).
 
-   **`main`, a release branch, or any protected integration branch** (dry-run
-   only — do not delete spec folders on the integration branch):
-   ```text
-   /speckit.archive.run --sweep --current-target <current-spec-dir> --dry-run
-   ```
+**Plugin agent caveat:** `permissionMode`, `hooks`, and `mcpServers`
+frontmatter are silently ignored on plugin agents. Run the parent
+session in `acceptEdits` or `bypassPermissions` for smooth execution.
+See `references/plugin-limitations.md`.
 
-4. Archive Sweep may archive/clean up only previously merged specs. It MUST
-   exclude the current target spec until a later run sees that spec as merged.
-5. Record sweep output in the workflow notes: eligible previous specs, excluded
-   current spec, archive extension installed state, cleanup mode, and
-   `safeToApplyCleanup`.
-6. Add an `Archive Sweep: previously merged specs archived` task before Phase 0
-   in the visible task list.
-
-If the archive extension is missing, record `archive_extension_installed=false`,
-keep cleanup disabled, and continue only after warning that the project should
-install or vendor `racecraft-lab/spec-kit-archive` for archive-aware cleanup.
-
-## Step 0: Prerequisites
-
-Run the prerequisite scripts to verify the environment. If any
-check fails, STOP with the error message from the JSON output.
-
-### 0.0 Resolve Script Paths
-
-The autopilot's bash scripts ship with the **plugin**, not the
-project. Before running any script, resolve the absolute path
-to the scripts directory from the skill's base directory.
-
-When this skill is loaded, Claude Code prints:
-`Base directory for this skill: /path/to/.../skills/speckit-autopilot`
-
-Extract that path and append `/scripts` to get the scripts dir.
-Store the result as `SKILL_SCRIPTS` for all subsequent commands:
-
-```text
-SKILL_SCRIPTS="<base directory from skill header>/scripts"
-```
-
-For example, if the header says:
-`Base directory for this skill: <HOME>/.claude/plugins/cache/racecraft-plugins-public/speckit-pro/1.1.0/skills/speckit-autopilot`
-
-Then:
-```text
-SKILL_SCRIPTS="<HOME>/.claude/plugins/cache/racecraft-plugins-public/speckit-pro/1.1.0/skills/speckit-autopilot/scripts"
-```
-
-Verify the directory exists:
-
-```text
-Bash("ls '<SKILL_SCRIPTS>/'")
-```
-
-If it doesn't exist, STOP: "Plugin scripts not found. Reinstall
-the speckit-pro plugin."
-
-**All script invocations below use the resolved `SKILL_SCRIPTS`
-path as prefix.** Never run these scripts from
-`.specify/scripts/bash/` — that directory contains project-level
-SpecKit scripts (create-new-feature, setup-plan, etc.), which are
-different from the autopilot scripts.
-
-**WARNING:** `CLAUDE_PLUGIN_ROOT` is NOT available in Bash tool
-invocations — it only exists inside agent subprocesses. Always use
-the literal path extracted from the skill header.
-
-### 0.1-0.7 Environment Checks
-
-```text
-Bash("bash '<SKILL_SCRIPTS>/check-prerequisites.sh' <workflow_file_path>")
-```
-
-Parse the JSON result:
-- `all_pass`: if `false`, report each failed check's `message` and STOP
-- `branch`: current git branch name
-- `on_feature_branch`: if `true`, Specify must skip branch creation
-- `is_worktree`: if `true`, already in an isolated worktree
-
-If `on_feature_branch` is `true`, verify the branch matches the
-workflow file's `Branch` field. Warn if they don't match.
-
-**Important:** Environment variables set in Bash do NOT persist to
-Skill tool invocations. The autopilot handles branch context by
-adjusting how it invokes each phase (see Phase Dispatch).
-
-### 0.6 Load Settings
-
-Read `.claude/speckit-pro.local.md` if it exists. Parse YAML
-frontmatter for: `consensus-mode` (default: `moderate`),
-`gate-failure` (default: `stop`), `auto-commit` (default:
-`per-phase`), `security-keywords` (default: standard list).
-If the file doesn't exist, use all defaults.
-
-### 0.8 MCP Server & Plugin Limitation Check
-
-The prerequisite script now reports MCP server availability.
-This is **informational, not blocking** — all agents include
-built-in fallbacks. Parse the `mcp_servers` check from the
-JSON output and report which servers are available vs. missing.
-
-**Plugin agent limitations:** Because these agents run from a
-plugin, Claude Code silently ignores `permissionMode`, `hooks`,
-and `mcpServers` frontmatter fields. All agents inherit the
-parent session's permission mode. Ensure the parent session
-runs in `acceptEdits` or `bypassPermissions` mode for smooth
-autopilot execution. See `references/plugin-limitations.md`
-for details and workarounds.
-
-### 0.9 Constitution Validation
-
-Read the workflow file's Prerequisites table. If already
-`Verified`, skip (resuming a workflow). Otherwise:
-
-1. Read constitution from `.specify/memory/constitution.md`
-2. For each principle, run the appropriate PROJECT_COMMANDS
-   check (typecheck, test suite, build, lint). For code
-   review items (KISS, YAGNI, SOLID), mark `Verified` —
-   these are validated during implementation.
-3. Update the workflow file's table with results and baselines
-4. If any check fails, STOP — do not proceed to Phase 1
-
-### 0.10 Implementation Agent Detection
-
-Detect whether the project has a specialized implementation
-agent for the Implement phase. This avoids hardcoding agent
-names and makes the plugin work with any project.
-
-```text
-1. Glob(".claude/agents/*.md") to find all project agents
-2. For each agent file, read the YAML frontmatter
-3. Check the description for implementation keywords:
-   "implement", "TDD", "development", "developer",
-   "coding", "build", "test-first"
-4. If exactly one match → record its name as
-   PROJECT_IMPLEMENTATION_AGENT
-5. If multiple matches → pick the one with the most
-   specific description (or ask the user)
-6. If no matches → set PROJECT_IMPLEMENTATION_AGENT to
-   "phase-executor" (fallback)
-```
-
-Also check CLAUDE.md for references to a specific
-implementation agent (e.g., "my-project-developer" or
-"use the X agent for implementation").
-
-**Record the result** for use in Step 2's Implement phase.
-
-### 0.11 Project Command Discovery
-
-```text
-Bash("bash '<SKILL_SCRIPTS>/detect-commands.sh'")
-```
-
-Parse the JSON result for `commands` object containing:
-BUILD, TYPECHECK, LINT, LINT_FIX, UNIT_TEST,
-INTEGRATION_TEST, SINGLE_FILE_TEST, SINGLE_FILE_INTEGRATION,
-FULL_VERIFY. Commands set to `"N/A"` are skipped during
-verification. The script auto-detects Node.js, Rust, Go,
-Python, and Makefile projects.
-
-**Also check CLAUDE.md** for a "Build Commands" table — it's
-the most authoritative source and may override script results.
-
-Record PROJECT_COMMANDS in the workflow file so they persist
-across context compactions. Pass them to every subagent.
-
-### 0.12 Preset and Extension Detection
-
-```text
-Bash("bash '<SKILL_SCRIPTS>/detect-presets.sh'")
-```
-
-Parse the JSON result for: `has_presets`, `presets` (names +
-templates they override), `extensions`, `hooks`, and
-`templates` (resolved paths for tasks/spec/plan templates).
-
-If `has_presets` is `true`:
-1. Read each preset's overridden templates to understand
-   the conventions it enforces (TDD, architecture, etc.)
-2. Record as PRESET_CONVENTIONS for subagent prompts
-3. Include PRESET_CONVENTIONS in ALL subagent prompts —
-   presets affect every phase, not just implement
-
-If no presets AND no extensions, skip this step.
+**Full per-step details, JSON schemas, MCP fallback behavior, and
+failure-escalation rules:** see [`references/prerequisites.md`](./references/prerequisites.md).
 
 ## Step 1: Parse Workflow State
 
@@ -559,379 +270,127 @@ stop.
 
 ### 1.1 Create Progress Task List
 
-After parsing the workflow state, create a **granular** task list.
-For multi-prompt phases (Clarify, Checklist), create one task per
-prompt/session so the autopilot knows exactly what to execute next.
+After parsing the workflow state, create a **granular** task list. For
+multi-prompt phases (Clarify, Checklist), create one task per
+prompt/session. **Every Clarify session, every Checklist domain, and
+the Analyze phase MUST have a paired Consensus task** immediately
+after (skipped only if the executor reports zero unresolved items).
 
-**Task naming pattern** (parse from workflow file):
+The full **11-entry Post-Implementation task list** and the task
+naming pattern live in
+[`references/task-list-canonical.md`](./references/task-list-canonical.md).
+Every entry there MUST appear in the visible progress panel before
+Phase 1 starts — when an extension is absent, the task still appears
+marked `skipped: <ext-name> not installed`.
 
-```text
-  "Archive Sweep: previously merged specs dry-run/apply eligibility"
-  "Phase 0: Prerequisites"
-  "Phase 1: Specify"
-  "Phase 2: Clarify - <Session Name>"           ← one per session
-  "Phase 2: Clarify - <Session Name> Consensus" ← MANDATORY after each session
-  "Phase 3: Plan"
-  "Phase 4: Checklist - <Domain>"               ← one per domain
-  "Phase 4: Checklist - <Domain> Consensus"     ← MANDATORY after each domain
-  "Phase 5: Tasks"
-  "Phase 6: Analyze"
-  "Phase 6: Analyze - Consensus"                ← MANDATORY after analyze
-  "Phase 7: <Group> (<task IDs>)"               ← parsed from tasks.md
-  "Post: <task name>"                           ← from post-impl table (full list below)
-```
-
-### Canonical Post-Implementation Task List — ENUMERATE ALL OF THESE
-
-The autopilot has a complete, prescribed set of post-implementation
-tasks. Every task below MUST appear in your task list unless its
-required extension is provably absent. **Do NOT omit any of these,
-do NOT collapse them, do NOT defer them — the user expects to see
-all of them in the progress panel before Phase 1 starts.** When an
-extension is missing, still create the task but mark it skipped with
-a one-line reason ("skipped: <extension> not installed").
-
-```text
-  "Post: Doctor Extension Check"        ← doctor / speckit-utils ext
-  "Post: Verify Implementation"         ← verify ext
-  "Post: Verify Tasks Phantom Check"    ← verify-tasks ext
-  "Post: Code Review"                   ← review ext
-  "Post: Integration Suite"             ← always required (no ext)
-  "Post: Cleanup"                       ← cleanup ext
-  "Post: Reviewability Diff Gate"       ← always required (no ext)
-  "Post: PR Body Generation"            ← always required (no ext)
-  "Post: PR Creation"                   ← always required (no ext)
-  "Post: Review Remediation"            ← always required (no ext)
-  "Post: Retrospective"                 ← retrospective ext (FINAL STEP)
-```
-
-Detection rule per extension task: check `.specify/extensions.yml`
-(or `.registry`) for the extension's `enabled: true` flag, OR confirm
-the extension directory exists via Glob. If neither, the task still
-appears in the task list with status "skipped: <ext-name> not installed".
-
-**CRITICAL — Consensus tasks are MANDATORY:**
-
-Every Clarify session, every Checklist domain, and the Analyze
-phase MUST have a corresponding Consensus task immediately after
-it. The consensus task runs the two-layer resolution process
-(Rule 6) — skipped only if the executor reports zero unresolved
-items. **Never omit consensus tasks from the task list.**
-
-**Other rules:**
-- Phase 7 decomposed into groups after tasks.md is created
-  (test/impl/verify per phase, see `references/phase-execution.md`)
-- Mark completed phases immediately; first pending as in_progress
-- **Verify task-list completeness before starting Phase 1**: count
-  the prescribed entries above and confirm every Phase, every
-  Consensus, and every Post: task is present. If the count differs,
-  ADD the missing entries before advancing.
+**Verify completeness before starting Phase 1**: count the prescribed
+entries (every Phase, every Consensus, every `Post:`) and ADD any
+missing before advancing.
 
 ## Step 2: Main Execution Loop
 
-For each pending phase, spawn a subagent, collect the result,
-validate the gate, and advance. Every step is a tool call.
+For each pending phase, spawn a subagent, collect the result, validate
+the gate, advance. Every step is a tool call.
 
 ```text
 PHASES = [specify, clarify, plan, checklist, tasks, analyze, implement]
 
 for phase in PHASES starting from first_pending:
-    1. TaskUpdate: set phase task to "in_progress"
-    2. Check .specify/extensions.yml for before_<phase> hooks
-       → run accepted hooks (non-destructive), skip duplicates
-    3. Read the workflow file's prompt(s) for this phase
-    4. For EACH prompt in the phase:
-       a. Agent(prompt: "Run /speckit.<phase> with: <prompt>")
-       b. Receive subagent summary (tool result)
-       c. TaskUpdate: set this prompt's task to "completed"
-    5. Run consensus in main session if needed:
-       Parse executor's "Unresolved for consensus" section.
-       For each item → spawn 3 consensus agents in parallel
-       (codebase-analyst, spec-context-analyst, domain-researcher)
-       → apply consensus rules → edit artifacts
-    6. Check .specify/extensions.yml for after_<phase> hooks
-       → run accepted hooks (non-destructive), skip duplicates
-    7. Validate gate via gate-validator agent:
-       Agent(
-         subagent_type: "gate-validator",
-         description: "SPEC-XXX: Validate G<N>",
-         prompt: """
-           Validate gate G<N> for feature at <feature_dir>
-           Script path: <SKILL_SCRIPTS>/validate-gate.sh
-         """
-       )
-       Parse the agent's Gate Result for PASS/FAIL status.
-    8. If gate fails:
-       a. Attempt auto-fix (max 2 attempts)
-       b. If still failing and gate-failure == "stop": STOP
-       c. If gate-failure == "skip-and-log": log, continue
-    9. Update workflow file with results
-   10. If auto-commit == "per-phase":
-       For phases 1-6: Bash: git add specs/ && git commit
-       For phase 7 (implement): Bash: git add -A && git commit
-       (implementation changes include src/, tests/, etc.)
-   11. After Tasks and G5 pass, run
-       `<SKILL_SCRIPTS>/reviewability-gate.sh tasks <feature_dir>`.
-       If it returns an unexcepted `block`, STOP before Analyze or
-       Implement and split the spec.
-   12. Advance to next phase (next iteration of loop)
-
-POST-IMPLEMENTATION (after all 7 phases complete):
-    These are tasks in your task list — execute them in order.
-
-    ⚠️ HOW EXTENSION COMMANDS BECOME AVAILABLE:
-    Commands like speckit.verify, speckit.review, speckit.cleanup,
-    speckit.doctor, speckit.retrospective.analyze are INSTALLED by
-    `specify extension add <name>`. The CLI creates command files
-    in .claude/commands/ (or equivalent for other agents). These
-    commands then appear as invocable skills.
-
-    If Step 0.12 detected the extension in .registry as enabled,
-    its commands ARE available — run the task.
-    If an extension is NOT in .registry and NOT in Glob results,
-    log a warning and skip that specific task (do NOT fail the
-    entire autopilot). Recommend: `specify extension add <name>`.
-
-    ⚠️ CRITICAL: Use Agent() subagents for ALL post-implementation
-    tasks — NEVER use Skill() directly. Rule #1 applies here too:
-    a Skill() call loads the command into YOUR context, and the
-    command's completion text can kill the agent loop, preventing
-    subsequent tasks from running.
-
-    Post-implementation tasks (execute in order — every row below
-    is a task that MUST appear in the task list per Step 1.1's
-    Canonical Post-Implementation Task List):
-
-    | # | Task | Requires | Command |
-    |---|------|----------|---------|
-    | 10 | Doctor Extension Check | doctor / speckit-utils ext | /speckit.speckit-utils.doctor (or /speckit.doctor) |
-    | 11 | Verify Implementation | verify ext | /speckit.verify |
-    | 12 | Verify Tasks Phantom Check | verify-tasks ext | /speckit.verify-tasks |
-    | 13 | Code Review | review ext | /speckit.review |
-    | 14 | Integration Suite | (none) | Step 3.1 direct |
-    | 15 | Cleanup | cleanup ext | /speckit.cleanup |
-    | 16 | Reviewability Diff Gate | (none) | reviewability-gate.sh diff |
-    | 17 | PR Body Generation | (none) | generate-pr-body.sh |
-    | 18 | PR Creation | (none) | Step 3.2 direct |
-    | 19 | Review Remediation | (none) | Step 3.3 /loop |
-    | 20 | Retrospective | retrospective ext | /speckit.retrospective.analyze |
-
-    Extension tasks: Agent(subagent_type: "general-purpose",
-      prompt: "Run /<command> for SPEC-XXX. Return summary.")
-    Non-extension tasks (14, 16, 17, 18, 19): execute directly per Step 3.
-    Missing extension: log warning and mark the task "skipped: <ext> not
-    installed". The task MUST still appear in the task list — never drop
-    it silently.
-    See references/post-implementation.md for detailed prompts.
-    Task 20 (Retrospective) is the FINAL STEP.
+    1. TaskUpdate: phase task → in_progress
+    2. Run before_<phase> hooks from .specify/extensions.yml
+    3. For each workflow prompt in this phase:
+         Agent(subagent_type: <phase executor>, prompt: ...)
+    4. Run consensus (Clarify/Checklist/Analyze only) — see Rule 6
+    5. Run after_<phase> hooks
+    6. Validate gate via gate-validator agent → parse PASS/FAIL
+       On FAIL: auto-fix max 2 attempts; then honor gate-failure setting
+    7. Update workflow file; auto-commit if configured
+         phases 1-6: git add specs/ && git commit
+         phase 7:    git add -A && git commit
+    8. After Tasks (G5 pass), run reviewability-gate.sh tasks;
+       unexcepted `block` → STOP and split the spec
+    9. Advance
 ```
+
+**Full per-phase prompts, dispatch templates, gate validation
+details, hook events, and the dispatcher-agent table:**
+see [`references/phase-execution.md`](./references/phase-execution.md).
+
+After all 7 phases pass G7, execute the post-implementation task list.
+The 11 tasks, detailed prompts, and extension routing live in
+[`references/post-implementation.md`](./references/post-implementation.md);
+the canonical name list is in
+[`references/task-list-canonical.md`](./references/task-list-canonical.md).
+
+**⚠️ Use `Agent()` subagents for ALL post-implementation tasks — NEVER
+`Skill()` directly.** Rule 1 applies: a `Skill()` call loads the
+command into YOUR context and the command's completion text can kill
+the agent loop, preventing subsequent tasks from running.
+
+**Extension availability**: Step 0.12 records which extensions are
+installed in `.registry`. If an extension is missing, log a warning
+and mark its task `skipped: <ext> not installed` — do NOT fail the
+autopilot. Recommend `specify extension add <name>` in the warning.
 
 **Dynamic task updates:** If consensus reveals new questions or
 remediation adds loops, create additional tasks via TaskCreate.
 
 ### Phase Dispatch
 
-For each phase: read the prompt, spawn a subagent, validate.
-
-#### Subagent Prompt Construction
-
-Use the phase-specific executor agent:
-
-```text
-Agent(
-  subagent_type: "<agent for this phase>",
-  description: "SPEC-XXX <phase>",
-  prompt: """
-    <phase-specific prefix if needed>
-
-    [IF presets detected in Step 0.12]
-    PRESET_CONVENTIONS:
-      Preset: <name> (priority <N>)
-      Overrides: <templates this preset replaces>
-      Enforces: <conventions from preset templates>
-    [/IF]
-
-    [IF PROJECT_COMMANDS discovered in Step 0.11]
-    PROJECT_COMMANDS:
-      BUILD: <cmd>  TYPECHECK: <cmd>  LINT: <cmd>
-      UNIT_TEST: <cmd>  INTEGRATION_TEST: <cmd>
-    [/IF]
-
-    Workflow prompt:
-    ---
-    <paste the exact prompt from the workflow file>
-    ---
-  """
-)
-```
+Every subagent prompt includes the workflow-file prompt plus, when
+present, `PRESET_CONVENTIONS` (from Step 0.12) and `PROJECT_COMMANDS`
+(from Step 0.11). The full `Agent(...)` template lives in
+[`references/phase-execution.md`](./references/phase-execution.md)
+§Subagent Delegation.
 
 **Agent selection:**
 
 | Phase | subagent_type | Prefix |
 | ----- | ------------- | ------ |
-| Specify | `phase-executor` | Branch-aware (if ON_FEATURE_BRANCH) |
-| Clarify | `clarify-executor` | Parent answers question set |
+| Specify | `phase-executor` | Branch-aware when `ON_FEATURE_BRANCH` (skip `create-new-feature.sh`) |
+| Clarify | `clarify-executor` | Read-only — returns a Clarify Question Set; parent answers + applies edits |
 | Plan | `phase-executor` | None |
-| Checklist | `checklist-executor` | None |
+| Checklist | `checklist-executor` | One subagent per domain |
 | Tasks | `phase-executor` | None |
 | Analyze | `analyze-executor` | None |
-| Implement | per-task routing | TDD protocol + COMPLETED_TASKS context (see "Implement — Task-Level Dispatch") |
+| Implement | per-task routing | TDD protocol + COMPLETED_TASKS — see Implement — Task-Level Dispatch below |
 
-#### Specify — Branch-Aware Prefix
-
-When `ON_FEATURE_BRANCH` is true (Step 0.7), add this prefix
-to the subagent prompt before the workflow prompt:
-
-```text
-IMPORTANT: Already on feature branch `<CURRENT_BRANCH>`.
-Do NOT run `create-new-feature.sh` or create a new branch.
-The branch and `specs/<CURRENT_BRANCH>/` directory already
-exist. Skip directly to spec content generation.
-```
-
-All other phases use `check-prerequisites.sh` →
-`get_current_branch()` which detects the worktree branch
-automatically. No prefix needed.
-
-#### Clarify — Parent Answering Prefix
-
-The `clarify-executor` is a read-only question-preparation agent.
-It returns a `Clarify Question Set` to the parent instead of invoking
-the interactive `/speckit-clarify` command or editing artifacts. The
-parent orchestrator answers each returned question in the main session,
-applies the accepted clarifications to the spec/workflow/state files,
-then runs marker checks and consensus routing for unresolved items.
-No additional prefix is needed in the prompt — just pass the session
-prompt from the workflow file.
-
-#### Multi-Prompt Phases
-
-Clarify and Checklist have multiple prompts. Spawn a
-**separate subagent for each prompt**:
-
-- **Clarify:** One subagent per session (e.g., "Session 1:
-  Search Behavior", "Session 2: Database Operations")
-- **Checklist:** One subagent per domain (e.g.,
-  api-workaround, type-safety, requirements)
+Per-phase prefix templates (branch-aware Specify prefix, Clarify
+question-set contract, multi-prompt fan-out for Clarify sessions and
+Checklist domains) live in
+[`references/phase-execution.md`](./references/phase-execution.md)
+§Phase-by-Phase Execution.
 
 #### Resolution — After Each Prompt (Main Session)
 
-After EACH executor subagent returns, run the two-layer
-resolution process BEFORE spawning the next subagent.
+After EACH executor subagent returns for a consensus phase (Clarify,
+Checklist, Analyze), run the two-layer category-routed protocol from
+[`references/consensus-protocol.md`](./references/consensus-protocol.md).
 
-**Layer 1 — Check executor results:**
+**Layer 1** — parse the executor summary for remaining markers
+(`[NEEDS CLARIFICATION]`, `[Gap]`), items in the "Unresolved for
+consensus" section, and any security-keyword items. If none, advance
+to the next prompt/gate.
 
-Parse the executor's summary for:
-- Remaining markers (`[NEEDS CLARIFICATION]`, `[Gap]`)
-- Items in the "Unresolved for consensus" section
-- Security keyword items (always go to consensus)
+**Layer 2** — for each unresolved item, parse the `[<categories>]`
+prefix and dispatch the routed analysts in Round 1 (parallel via
+`run_in_background: true`), then the synthesizer. Escape-hatch to
+Round 2 (remaining analysts) on `[ESCAPE_TO_ROUND_2]`. Apply the
+synthesizer's Artifact Edit and continue.
 
-If no unresolved items → skip to next prompt/gate.
+**Per-phase verification** (post-resolution): Clarify re-greps for
+`[NEEDS CLARIFICATION]`; Checklist re-runs the domain checklist;
+Analyze re-runs `/speckit-analyze`. Full per-phase prompts and
+verification steps live in
+[`references/consensus-protocol.md`](./references/consensus-protocol.md)
+§Phase-Specific Consensus Flows.
 
-**Layer 2 — Category-routed consensus dispatch:**
-
-For each unresolved item, parse its `[<categories>]` prefix
-and dispatch only the relevant analyst(s). The synthesizer
-always runs (becomes "edit-applier" in single-analyst case).
-
-```text
-TaskUpdate: "<Phase> - <Prompt> Consensus" → in_progress
-
-For each unresolved item from executor summary:
-  # ─── Round 1: Category-routed ───────────────────────────────
-  Parse the leading `[<categories>]` prefix into a set:
-    {codebase, spec, domain}    if explicitly tagged
-    {codebase, spec, domain}    if [security] (force all 3)
-    {codebase, spec, domain}    if [ambiguous] or missing/unparseable
-    union of named tags         if multi-tag, e.g. [codebase, domain]
-
-  ANALYSTS_RUN = []
-  For each tag in the parsed set, spawn the analyst in parallel:
-    [codebase] → Agent(subagent_type: "codebase-analyst",
-                       run_in_background: true,
-                       description: "SPEC-XXX consensus R1: <item>",
-                       prompt: "<consensus prompt, your perspective>")
-    [spec]     → Agent(subagent_type: "spec-context-analyst", ...)
-    [domain]   → Agent(subagent_type: "domain-researcher", ...)
-    Track which analysts were spawned in ANALYSTS_RUN.
-
-  Wait for all spawned analysts to complete.
-
-  # ─── Synthesis (always runs) ────────────────────────────────
-  Agent(
-    subagent_type: "consensus-synthesizer",
-    description: "SPEC-XXX consensus synthesis (R1): <item>",
-    prompt: """
-      ## Consensus Resolution
-
-      **Unresolved Item:** <question/gap/finding text>
-      **Routed Categories:** [<categories from prefix>]
-      **Round:** 1
-
-      **Codebase Analyst Response:**
-      <full response> | NOT SPAWNED (reason: not routed in this round)
-
-      **Spec Context Analyst Response:**
-      <full response> | NOT SPAWNED (reason: not routed in this round)
-
-      **Domain Researcher Response:**
-      <full response> | NOT SPAWNED (reason: not routed in this round)
-    """
-  )
-
-  Parse the Consensus Result:
-    IF Flags = None AND Confidence = high:
-      Apply Artifact Edit to specified file
-      Log Round=1, Outcome=high-confidence|both-agree, ANALYSTS_RUN
-      continue to next item
-
-    IF Flags includes [ESCAPE_TO_ROUND_2]:
-      proceed to Round 2 below.
-
-    IF Flags includes [HUMAN REVIEW NEEDED]:
-      Log to workflow file, STOP autopilot.
-
-  # ─── Round 2: Full fan-out (escape path) ────────────────────
-  REMAINING = {codebase-analyst, spec-context-analyst, domain-researcher} − ANALYSTS_RUN
-  For each agent in REMAINING:
-    Agent(subagent_type: "<agent>",
-          run_in_background: true,
-          description: "SPEC-XXX consensus R2: <item>",
-          prompt: "<consensus prompt, your perspective>")
-  Wait for the new analysts to complete.
-
-  Re-invoke consensus-synthesizer with Round=2 and all 3 responses.
-  Parse the Consensus Result:
-    IF Flags = None: apply Artifact Edit, log Round=1→2,
-                     Outcome=2/3|3/3|escape-hatch
-    IF Flags = [HUMAN REVIEW NEEDED]: log, STOP
-
-TaskUpdate: "<Phase> - <Prompt> Consensus" → completed
-```
-
-**Logging:** Every resolution writes to the Consensus Resolution
-Log in the workflow file (see consensus-protocol.md §"Logging"
-for the canonical column set). The `Round` and `Routed Categories`
-columns are mandatory — the 10% Round-2 escape-rate re-evaluation
-trigger is computed from them.
-
-**Per-phase specifics:**
-
-- **Clarify:** After each session → grep spec.md for
-  `[NEEDS CLARIFICATION]`. Parse executor's "Unresolved
-  for consensus" section. Run consensus for each. Apply
-  consensus answers to spec.md, remove markers. Proceed
-  to next session.
-- **Checklist:** After each domain → parse executor's
-  "Unresolved for consensus" section. Run consensus for
-  each unresolved gap. Apply consensus fixes to spec.md
-  or plan.md. Re-run domain checklist to verify if any
-  gaps were fixed by consensus. Proceed to next domain.
-- **Analyze:** After analysis → parse executor's
-  "Unresolved for consensus" section. Run consensus for
-  each unresolved finding. Apply consensus fixes to
-  tasks.md, spec.md, or plan.md. Re-run analyze to verify
-  if findings were fixed by consensus.
+**Logging requirement:** Every resolution writes a row to the
+Consensus Resolution Log in the workflow file. The `Round` and
+`Routed Categories` columns are mandatory — the 10% Round-2
+escape-rate re-evaluation trigger is computed from them. See
+[`references/consensus-protocol.md`](./references/consensus-protocol.md)
+§Logging for the canonical column set.
 
 #### Implement — Task-Level Dispatch
 
@@ -974,76 +433,45 @@ the final summary with PR URL.
 
 ## Workflow File Update Protocol
 
-After EVERY phase, update these sections in the workflow file:
+After EVERY phase, update the workflow file so it remains the
+durable source of truth across context compactions and resumes:
+status table `⏳` → `✅` with summary notes; per-phase Results
+tables; Constitution Validation table after Specify (initial) and
+Implement (final); Consensus Resolution Log row per resolution
+(when consensus was used).
 
-| Phase | Sections to Update |
-| --- | --- |
-| **All** | Status table: `⏳` → `✅` with summary notes |
-| **Specify** | Specify Results table, Files Generated checkboxes |
-| **Clarify** | Clarify Results table (session focus, questions, outcomes) |
-| **Plan** | Plan Results table (artifact status) |
-| **Checklist** | Checklist Results table, Addressing Gaps section |
-| **Tasks** | Tasks Results table (total, phases, parallel, coverage) |
-| **Analyze** | Analysis Results table (ID, severity, issue, resolution) |
-| **Implement** | Implementation Progress, Post-Implementation Checklist, Success Criteria |
-
-Also update the Constitution Validation table after Specify (initial)
-and Implement (final).
-
-If consensus was used, add entries to the Consensus Resolution Log.
+Full per-phase update table and Consensus Resolution Log column
+schema live in
+[`references/workflow-file-protocol.md`](./references/workflow-file-protocol.md).
 
 ## Error Recovery
 
-### Resuming After Interruption
+- **Resume:** `/speckit-pro:autopilot workflow.md --from-phase
+  <next-pending-phase>` — the workflow file persists all state.
+- **Gate fails after 2 auto-fix attempts:** honor `gate-failure`
+  setting (default `stop`); on STOP, show gate script output.
+- **Consensus all-disagree** (Round 2): flag `[HUMAN REVIEW NEEDED]`,
+  STOP, and present all 3 perspectives to the user.
+- **MCP tool unavailable:** skip dependent research; use Read/Grep
+  fallback; log a warning.
+- **Context window pressure:** keep subagent summaries concise; the
+  workflow file is the durable record (re-read after compaction).
 
-The workflow file persists all state. To resume:
-
-```text
-/speckit-pro:autopilot workflow.md --from-phase <next-pending-phase>
-```
-
-The autopilot reads prior artifacts from disk and continues from
-the specified phase.
-
-### Common Issues
-
-- **Subagent returns empty/incomplete summary:** Re-spawn with
-  the same prompt. If it fails again, run the command directly
-  via Bash and parse the output.
-- **Gate fails after 2 auto-fix attempts:** If `gate-failure`
-  setting is `stop`, STOP and report. Show the gate script
-  output so the user can diagnose.
-- **Consensus agents all disagree:** Flag `[HUMAN REVIEW NEEDED]`
-  and STOP. Present all 3 perspectives to the user.
-- **MCP tool unavailable:** Skip research that depends on it.
-  Use Read/Grep fallback for codebase analysis. Log warning.
-
-### Context Window Management
-
-For large specs, the context window may fill across 7 phases.
-Mitigations:
-
-- Keep sub-agent results concise (summaries, not full artifacts)
-- The workflow file is the persistent record — read it rather than
-  relying on conversation memory
-- Auto-compaction preserves CLAUDE.md and system instructions
-- If compacted, re-read the workflow file to restore state
+Full details, additional failure modes, and recovery playbooks live
+in [`references/error-recovery.md`](./references/error-recovery.md).
 
 ## References
 
-- [Phase Execution](./references/phase-execution.md) — Per-phase
-  prompt construction and execution details
-- [Consensus Protocol](./references/consensus-protocol.md) —
-  Multi-agent resolution rules and flows
-- [Gate Validation](./references/gate-validation.md) — Programmatic
-  gate checks and remediation loops
-- [Post-Implementation](./references/post-implementation.md) —
-  Integration suite, PR creation, review remediation loop
-- [TDD Protocol](./references/tdd-protocol.md) — Red-green-refactor
-  rules injected into implementation agent prompts
-- [Plugin Limitations](./references/plugin-limitations.md) —
-  permissionMode, hooks, mcpServers restrictions for plugin agents;
-  MCP server prerequisites and fallback behavior
+- [Prerequisites](./references/prerequisites.md) — Archive Sweep + Step 0.x environment, settings, constitution, agent detection, command/preset discovery
+- [Phase Execution](./references/phase-execution.md) — Per-phase prompt construction, dispatch templates, branch-aware/Clarify/Multi-prompt prefixes
+- [Consensus Protocol](./references/consensus-protocol.md) — Category-routed dispatch, Round 1/2, per-phase flows, Logging schema
+- [Gate Validation](./references/gate-validation.md) — Programmatic gate checks (G0–G7), auto-fix loops, escalation
+- [Post-Implementation](./references/post-implementation.md) — 11-task post-impl sequence, integration suite, PR creation, review loop
+- [Task List Canonical](./references/task-list-canonical.md) — Task naming pattern + canonical post-implementation entries
+- [Workflow File Protocol](./references/workflow-file-protocol.md) — Per-phase update table + Consensus Resolution Log column schema
+- [Error Recovery](./references/error-recovery.md) — Resume, common issues, context-window management
+- [TDD Protocol](./references/tdd-protocol.md) — Red-green-refactor rules injected into implementation agent prompts
+- [Plugin Limitations](./references/plugin-limitations.md) — permissionMode/hooks/mcpServers caveats, MCP fallback behavior
 
 ## Scripts
 
