@@ -112,13 +112,57 @@ workflow file's `Branch` field. Warn if they don't match.
 Skill tool invocations. The autopilot handles branch context by
 adjusting how it invokes each phase (see Phase Dispatch).
 
-## Step 0.6: Load Settings
+## Step 0.6: Load Settings + Detect Agent Teams Capability
+
+### Settings file
 
 Read `.claude/speckit-pro.local.md` if it exists. Parse YAML
 frontmatter for: `consensus-mode` (default: `moderate`),
 `gate-failure` (default: `stop`), `auto-commit` (default:
 `per-phase`), `security-keywords` (default: standard list).
 If the file doesn't exist, use all defaults.
+
+### Agent Teams capability probe
+
+Agent Teams is a **capability**, not a user setting. The autopilot
+probes for it at startup and routes anywhere-it's-beneficial work to
+teams when available, otherwise falls back to highly-parallel
+subagent dispatch. Users do not opt-in — if Anthropic has enabled
+Agent Teams on this machine, speckit-pro uses it.
+
+Probe two conditions:
+
+```text
+Bash("test \"${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS}\" = \"1\"")
+Bash("claude --version | awk '{print $1}' | sort -V -C 2.1.32")
+```
+
+1. **Env var:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set
+   (per [Anthropic's Agent Teams docs](https://code.claude.com/docs/en/agent-teams))
+2. **Version:** `claude --version` returns ≥ `2.1.32`
+
+Record the result as `AGENT_TEAMS_AVAILABLE = true|false` in the
+workflow file's Notes section. Pass this flag to dispatch decisions
+downstream — it is not user-tunable.
+
+When `AGENT_TEAMS_AVAILABLE` is `false`, log to the workflow file:
+
+> Agent Teams not detected (env var unset OR Claude Code < 2.1.32).
+> Using parallel-subagents dispatch for post-impl. To enable Agent
+> Teams (which adds inter-teammate messaging and shared task lists),
+> set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` and upgrade Claude
+> Code to ≥ 2.1.32, then re-run.
+
+**Do not STOP** — both code paths complete the autopilot correctly.
+Agent Teams is a quality-and-coordination enhancement, not a
+dependency. The subagents fallback is itself parallel (background
+dispatch in one tool call) so wall-clock is comparable.
+
+Dispatch details for both code paths live in
+[`post-implementation.md`](./post-implementation.md) §Post-Implementation Parallel Group.
+The full **use-site map** (post-impl, consensus, Phase 7 `[P]` tasks,
+parallel checklist/analyze) and lifecycle policy live in
+[`agent-teams-integration.md`](./agent-teams-integration.md).
 
 ## Step 0.8: MCP Server & Plugin Limitation Check
 

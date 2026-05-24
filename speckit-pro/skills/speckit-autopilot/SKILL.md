@@ -43,17 +43,23 @@ window auto-compacts; do not stop early, complete all 7 phases.
 ## Architectural Constraint — Main Agent Is The Orchestrator
 
 This skill loads into the **main session agent** when the user invokes
-`/speckit-pro:autopilot`. Only the main agent can spawn subagents — per
-[Anthropic's sub-agent docs](https://code.claude.com/docs/en/sub-agents),
-**subagents cannot spawn other subagents.** The Orchestrator-Direct
-pattern works because the skill IS the main agent at execution time;
-phase-spawning is flat fan-out, never nested.
+`/speckit-pro:autopilot`. Only the main agent can spawn subagents
+([sub-agent docs](https://code.claude.com/docs/en/sub-agents):
+subagents can't nest) AND create Agent Teams
+([Agent Teams architecture](https://code.claude.com/docs/en/agent-teams#architecture):
+team-lead = main session). The skill IS the orchestrator at execution
+time. EVERY dispatch decision — parallel subagents vs sequential vs
+Agent Team, model routing, lifecycle sequencing — happens HERE. Phase
+executors are terminal workers; they don't dispatch, don't branch on
+`AGENT_TEAMS_AVAILABLE`, don't create teams.
 
-**If this skill is ever loaded inside a subagent context** (e.g. a
-phase-executor mistakenly calls `Skill('speckit-autopilot')`), it MUST
-refuse and surface the violation rather than orchestrate. None of the
-bundled phase agents include `Agent` in their tools list, so the
-runtime enforces this — not just convention.
+Runtime enforcement: no phase agent has `Agent` or team-management
+tools (`TeamCreate`/`sendMessage`/`taskUpdate`) in its allowlist
+(Layer 5 verifies). **If this skill is ever loaded inside a subagent
+context**, it MUST refuse rather than orchestrate. Full invariant +
+implications for new workstreams in
+[`references/agent-teams-integration.md`](./references/agent-teams-integration.md)
+§Single orchestrator invariant.
 
 ## Prerequisites — Model & Effort
 
@@ -245,8 +251,9 @@ Run the pre-flight sequence before any phase work. STOP on failure.
    match descriptions against implementation keywords; set
    `PROJECT_IMPLEMENTATION_AGENT` (fallback: `phase-executor`). Also
    check CLAUDE.md for an explicit agent reference.
-6. **Load settings** from `.claude/speckit-pro.local.md` if present
-   (`consensus-mode`, `gate-failure`, `auto-commit`, `security-keywords`).
+6. **Load settings + Agent Teams probe** — read `.claude/speckit-pro.local.md`
+   (`consensus-mode`, `gate-failure`, `auto-commit`, `security-keywords`);
+   record `AGENT_TEAMS_AVAILABLE` from env+version probe (see prerequisites.md §Step 0.6).
 
 **Plugin agent caveat:** `permissionMode`, `hooks`, and `mcpServers`
 frontmatter are silently ignored on plugin agents. Run the parent
@@ -420,12 +427,13 @@ context, verify): see `references/phase-execution.md` —
 After all 7 phases complete and G7 passes, follow the
 detailed procedures in `references/post-implementation.md`:
 
-1. **3.1 Integration Suite** — verify spec-specific tests
+1. **3.0 Parallel group** — auto-routed by `AGENT_TEAMS_AVAILABLE` (teams vs parallel-subagents)
+2. **3.1 Integration Suite** — verify spec-specific tests
    exist, run FULL suite to catch regressions, fix failures
-2. **3.2 PR Creation** — final verification, reviewability diff gate,
+3. **3.2 PR Creation** — final verification, reviewability diff gate,
    host-template-aware PR body generation, push, create PR with
    `--body-file`, update workflow file
-3. **3.3 Review Remediation** — schedule `/loop` to monitor
+4. **3.3 Review Remediation** — schedule `/loop` to monitor
    and resolve Copilot/human review comments every 5 minutes
 
 After scheduling the loop, the autopilot is DONE. Report
@@ -472,6 +480,7 @@ in [`references/error-recovery.md`](./references/error-recovery.md).
 - [Error Recovery](./references/error-recovery.md) — Resume, common issues, context-window management
 - [TDD Protocol](./references/tdd-protocol.md) — Red-green-refactor rules injected into implementation agent prompts
 - [Plugin Limitations](./references/plugin-limitations.md) — permissionMode/hooks/mcpServers caveats, MCP fallback behavior
+- [Agent Teams Integration](./references/agent-teams-integration.md) — Use-site map (current + planned), capability detection, lifecycle policy
 
 ## Scripts
 

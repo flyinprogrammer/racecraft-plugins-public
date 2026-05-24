@@ -1,6 +1,256 @@
 # Post-Implementation Reference
 
-Detailed procedures for Steps 3.1-3.3 of the autopilot workflow.
+Detailed procedures for Steps 3.0-3.3 of the autopilot workflow.
+
+## Contents
+
+- [Post-Implementation Parallel Group](#post-implementation-parallel-group) — capability-driven dispatch for tasks 10/11/12/13/14
+- [3.1 Full Integration / E2E Suite Verification](#31-full-integration--e2e-suite-verification)
+- [3.2 PR Creation](#32-pr-creation)
+- [3.3 Copilot Review Remediation Loop](#33-copilot-review-remediation-loop)
+
+## Post-Implementation Parallel Group
+
+This is **Use site 1** of the [Agent Teams use-site map](./agent-teams-integration.md)
+in speckit-pro — the first place the autopilot leverages Anthropic's
+Agent Teams when available. See that doc for the full map (current +
+planned), capability detection, and lifecycle policy across other use
+sites (consensus debate, Phase 7 `[P]` tasks, parallel
+checklist/analyze).
+
+Tasks 10/11/12/13/14 are independent post-implementation work that
+benefits from parallel dispatch. Tasks **15-20 are unaffected** — they
+remain strictly sequential because of hard dependencies (Cleanup edits
+code, PR Body needs Cleanup done, PR Creation needs PR Body, Review
+Remediation needs PR URL, Retrospective needs all of the above).
+
+**Both code paths are parallel.** The autopilot auto-routes based on
+`AGENT_TEAMS_AVAILABLE` from Step 0.6's capability probe — there is
+no user-facing opt-in. Agent Teams adds inter-teammate messaging and
+shared task-list coordination; the subagents fallback achieves the
+same wall-clock parallelism via background dispatch.
+
+### Dependency graph (both paths)
+
+```text
+10 Doctor Extension Check        — reads project state, no deps
+11 Verify Implementation         ─┐
+12 Verify Tasks Phantom Check    ─┼── may share test fixtures
+14 Integration Suite             ─┘   (chain serially within this group)
+13 Code Review                    — reads diff, no deps
+
+→ all 5 complete before 15 Cleanup begins
+```
+
+**Three parallel tracks** (same in both code paths):
+
+- Track A: `10 Doctor` (singleton, read-only)
+- Track B: `13 Code Review` (singleton, reads diff)
+- Track C: `11 Verify` → `12 Verify-Tasks` → `14 Integration Suite`
+  (chained — shared test fixtures, serialize within track)
+
+Wall-clock = `max(track A, track B, track C)` for either code path,
+versus the older `sum(tasks 10-14)` of strictly-sequential dispatch.
+
+### Path A: Agent Teams (when `AGENT_TEAMS_AVAILABLE=true`)
+
+The lead spawns ONE Agent Team for tasks 10-14, waits for all
+teammates to complete, synthesizes findings into the workflow file,
+runs `Clean up the team`, then continues serially from task 15.
+
+**Why a team here:** the docs' [parallel code review](https://code.claude.com/docs/en/agent-teams#use-case-examples)
+example is a 1:1 match — independent reviewers each apply a distinct
+lens, lead synthesizes. The team adds inter-teammate messaging (a
+verifier can ask the reviewer "did you see the regression in
+`src/foo.ts:42`?") and a shared task list with file-locked claiming.
+
+**Team spawn (natural-language prompt to the lead):**
+
+```text
+Create an agent team for SPEC-XXX post-implementation validation.
+Spawn 3 teammates, all using the phase-executor subagent type.
+**Use Sonnet for each teammate** — these are focused execution
+tasks (run a slash command, report results), no opus reasoning
+needed. The lead stays on opus for synthesis.
+
+- Name: "doctor"   — Task: Run /<doctor-cmd> for SPEC-XXX. Report
+                     extension health and any blocking issues.
+- Name: "reviewer" — Task: Run /<review-cmd> for SPEC-XXX. Report
+                     code-review findings by severity.
+- Name: "verifier" — Tasks (chain in order):
+                     1. Run /<verify-cmd> for SPEC-XXX
+                     2. Run /<verify-tasks-cmd> for SPEC-XXX
+                     3. Run <INTEGRATION_TEST command from PROJECT_COMMANDS>
+                     Report each step's pass/fail and any regressions.
+
+Task dependencies (set on the shared task list):
+  - "verifier-verify-tasks" blockedBy "verifier-verify"
+  - "verifier-integration"  blockedBy "verifier-verify-tasks"
+
+Require all three teammates to complete before I synthesize findings.
+Do not let any teammate edit src/, tests/, or specs/ files — they
+should only run commands and report results.
+```
+
+**Why Sonnet teammates:** Per [Anthropic's "Specify teammates and
+models"](https://code.claude.com/docs/en/agent-teams#specify-teammates-and-models),
+teammates don't inherit the lead's model selection. Per the
+[rody decomposition](https://x.com/0x_rody/status/2058475548242784649):
+*"Running 5 Opus agents in parallel burns tokens 5x faster... Same
+quality for focused tasks, fraction of the spend."* The teammates'
+work here is mechanical (run a command, parse output, report) —
+sonnet is plenty. See [`agent-teams-integration.md`](./agent-teams-integration.md)
+§Design principles #8 for the cross-cutting routing rule.
+
+Substitute the actual extension command names (e.g., `/speckit.doctor`
+vs `/speckit.speckit-utils.doctor`) based on Step 0.12 extension
+detection. Use the host project's `PROJECT_IMPLEMENTATION_AGENT`
+subagent type for any teammate where one is registered —
+`phase-executor` is the safe fallback.
+
+**Reusing existing subagent definitions:** per Anthropic's "Use
+subagent definitions for teammates," the teammate types here reference
+plugin-scoped subagent definitions. `tools` and `model` carry over
+from the definition. `skills` and `mcpServers` do NOT — teammates
+load skills/MCP from project + user settings same as a regular
+session, so the `/speckit.*` extension commands remain invocable.
+
+**Lead synthesis after team completes:**
+
+```text
+1. Wait for all 3 teammates to mark their tasks completed
+2. Collect each teammate's final report (read via team mailbox or
+   ask the lead to summarize each teammate's findings)
+3. Write a consolidated Post-Implementation Checklist entry to the
+   workflow file with one row per task (10/11/12/13/14):
+     | Task | Status | Findings | Action Needed |
+4. Ask the lead: "Clean up the team"
+5. Continue to Task 15 (Cleanup) — Path B subagents mode for the
+   serial tail
+```
+
+**Quality gate via `TaskCompleted` hook (optional but recommended):**
+
+Place this in `.claude/hooks/hooks.json` (project-level) to block any
+teammate from marking its task complete if Integration Suite reported
+a regression:
+
+```json
+{
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "matcher": "verifier-integration",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "grep -q 'PASS' /tmp/speckit-integration-result || exit 2"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Exit code 2 sends feedback to the teammate and prevents the task from
+being marked complete. The teammate must re-run the integration suite
+or surface the regression to the lead.
+
+**Path A failure modes:**
+
+- **A teammate stops on error:** message the teammate directly to
+  recover, or spawn a replacement (per Agent Teams troubleshooting
+  guidance). If unrecoverable, abandon the team and fall through to
+  Path B for the rest of this run; log the failure.
+- **Lead shuts down team early:** tell the lead "wait for your
+  teammates to complete their tasks before proceeding."
+- **Task status lags** (known Agent Teams limitation): if a teammate
+  has clearly finished but its task is still `in_progress`, nudge
+  the teammate or manually mark complete.
+- **Team cleanup fails** (active teammates remain): shut down any
+  remaining teammates first, then retry cleanup.
+
+### Path B: Parallel subagents (when `AGENT_TEAMS_AVAILABLE=false`)
+
+Same three tracks, dispatched as background subagents in ONE message.
+Each track is a `general-purpose` subagent that runs its track's
+commands (singleton or chain) and returns a summary. The lead awaits
+all three, then synthesizes.
+
+**Background dispatch (single tool turn):**
+
+```text
+Agent(subagent_type: "general-purpose",
+      run_in_background: true,
+      description: "SPEC-XXX Doctor",
+      prompt: "Run /<doctor-cmd> for SPEC-XXX. Return a summary of
+               extension health and any blocking issues.")
+
+Agent(subagent_type: "general-purpose",
+      run_in_background: true,
+      description: "SPEC-XXX Code Review",
+      prompt: "Run /<review-cmd> for SPEC-XXX. Return findings by
+               severity (CRITICAL/HIGH/MEDIUM/LOW).")
+
+Agent(subagent_type: "general-purpose",
+      run_in_background: true,
+      description: "SPEC-XXX Verify Chain",
+      prompt: "Run these 3 commands in sequence — STOP on first
+               failure and report which step failed:
+               1. /<verify-cmd> for SPEC-XXX
+               2. /<verify-tasks-cmd> for SPEC-XXX
+               3. <INTEGRATION_TEST command from PROJECT_COMMANDS>
+               Report pass/fail per step and any regressions.")
+```
+
+All three `Agent()` calls go in **one assistant message** so they
+dispatch concurrently. The orchestrator then awaits all three
+results (Claude Code's background-agent return mechanism) before
+synthesizing.
+
+**Lead synthesis after background subagents complete:**
+
+```text
+1. Receive all 3 subagent results as tool responses
+2. Write a consolidated Post-Implementation Checklist entry to the
+   workflow file with one row per task (10/11/12/13/14):
+     | Task | Status | Findings | Action Needed |
+3. Continue to Task 15 (Cleanup) — serial
+```
+
+**Path B failure modes:**
+
+- **A track subagent errors:** the other two tracks still complete.
+  Re-spawn the failed track (sequential retry, not in background).
+  If it fails again, mark the task `failed: <reason>` in the
+  Post-Implementation Checklist and surface to the user — do NOT
+  block PR creation on a non-fatal post-impl failure.
+- **Verify chain stops mid-chain (e.g., verify-tasks fails):** the
+  subagent reports which step failed. Mark the chain `failed at
+  step N` and skip step N+1 (don't run Integration Suite if
+  Verify-Tasks already showed phantom tasks — fix those first).
+- **Integration Suite test-fixture conflict** (rare): if the
+  integration suite shares a mutable working directory with the
+  verify extension (e.g., shared `target/` for Rust projects),
+  Track C's serial chain already handles this. The race only
+  appears if a user wires verify/review to also run integration
+  tests independently — uncommon and out of scope.
+
+### Why no user-facing `post-impl-mode` setting
+
+Agent Teams is a **capability** provided by Claude Code, not a
+preference. Either the user has enabled it per
+[Anthropic's docs](https://code.claude.com/docs/en/agent-teams) (env
+var + version) or they haven't. Speckit-pro uses it when available
+and uses parallel subagents otherwise — both paths deliver the same
+contract (3 parallel tracks, lead synthesizes, then serial tail).
+Users do not need to know about a setting; the autopilot adapts.
+
+If a future Claude Code release deprecates the env var (Agent Teams
+exits experimental and becomes default-on), the probe in
+`prerequisites.md` §Agent Teams capability probe should be relaxed
+to a single version check.
 
 ## 3.1 Full Integration / E2E Suite Verification
 
