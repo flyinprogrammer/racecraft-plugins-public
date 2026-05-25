@@ -363,6 +363,20 @@ ROUND 2 — Full fan-out, BATCHED across queued items
            Apply edit OR flag [HUMAN REVIEW NEEDED] and STOP.
 ```
 
+**Phase 6 (Analyze) synthesizer dispatch — additional duty.** When
+spawning the consensus-synthesizer for Phase 6 specifically
+(including the clean-pass case with zero unresolved findings),
+include in the spawn_agent prompt the directive from
+[consensus-protocol.md §Pre-Implement Confidence Emit](../../skills/speckit-autopilot/references/consensus-protocol.md#pre-implement-confidence-emit-end-of-phase-6-analyze):
+after all per-finding `Consensus Result` blocks (or immediately
+on a clean pass), the synthesizer MUST emit the
+`📊 Confidence: 0.XX` block plus the five criterion lines on
+their own lines in its output, so the orchestrator's post-Analyze
+write to the workflow log captures it. This is the data source
+for the optional Pre-Implement Confidence Gate (G6.5). On
+Clarify and Checklist synthesis the synthesizer must NOT emit
+this block.
+
 **Why batched.** Per-item serial dispatch wastes wall-clock: 5
 items × 3 analysts = 15 sequential turns vs. one batched turn.
 Analysts have no cross-item race (they only read); synthesizers
@@ -732,6 +746,13 @@ never from `.specify/scripts/bash/`.
   init, constitution, commands, branch detection (JSON)
 - `validate-gate.sh <G1-G7> <feature_dir>` — Validate any gate
   with marker counts and details (JSON)
+- `confidence-gate.sh <workflow-file> [--threshold N.NN] [--mode advisory|strict]` —
+  Read the synthesizer's `📊 Confidence: X.XX` pre-Implement emit and decide
+  whether Phase 7 may begin. Exit: 0 PASS, 1 NO_DATA (soft-skip), 2 FAIL.
+  See [Gate Validation §G6.5](../../skills/speckit-autopilot/references/gate-validation.md#g65--pre-implement-confidence-gate-between-analyze-and-implement).
+  In `codex exec` headless mode, `/goal` is not first-class
+  ([openai/codex#21764](https://github.com/openai/codex/discussions/21764));
+  the 3-iteration cap is the safety bound.
 - `reviewability-gate.sh <setup|tasks|diff> <path-or-range>` — Enforce
   setup, tasks, and pre-PR reviewability budgets (JSON)
 - `generate-pr-body.sh <repo-root> <feature-dir> <output-file> [diff-range]` —
