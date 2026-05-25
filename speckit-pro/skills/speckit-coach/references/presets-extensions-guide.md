@@ -96,7 +96,7 @@ preset:
   license: "MIT"                         # Optional
 
 requires:
-  speckit_version: ">=0.3.0"             # Required
+  speckit_version: ">=0.5.1"             # Required (>=0.5.1 introduced the preset/extension system in its current shape)
 
 provides:
   templates:                             # Required, at least one entry
@@ -207,38 +207,142 @@ specify extension catalog add --name <n> --install-allowed <url>
 specify extension catalog remove <name>        # remove catalog
 ```
 
-### Community Extension Catalog (26 extensions)
+### Extensions speckit-pro's autopilot routes to by name
 
-| Extension | ID | Category | Purpose |
-|-----------|----|----------|---------|
-| Archive | archive | docs | Archive merged features into project memory |
-| Cognitive Squad | cognitive-squad | docs | Multi-agent system with Triadic Model |
-| DocGuard | docguard | docs | Documentation validation and scoring |
-| Iterate | iterate | docs | Two-phase refine-and-apply for spec documents |
-| Learning | learning | docs | Generate educational guides from implementations |
-| Reconcile | reconcile | docs | Update artifacts to address implementation drift |
-| Retrospective | retrospective | docs | Post-implementation review with spec adherence scoring |
-| Spec Sync | spec-sync | docs | Detect and resolve drift between specs and code |
-| Understanding | understanding | docs | Quality analysis using 31 metrics (IEEE/ISO) |
-| V-Model | v-model | docs | Paired generation of dev and test specifications |
-| Cleanup | cleanup | code | Quality gate — fix small issues, create tasks for medium |
-| Ralph Loop | ralph-loop | code | Autonomous implementation using AI agent CLI |
-| Review | review | code | Comprehensive code review with 6 specialized agents |
-| Verify | verify | code | Post-implementation verification against spec artifacts |
-| Verify Tasks | verify-tasks | code | Detect phantom completions (tasks marked done but not implemented) |
-| Conduct | conduct | process | Orchestrate phases via sub-agent delegation |
-| Fleet Orchestrator | fleet-orchestrator | process | Full feature lifecycle with human-in-the-loop gates |
-| SDD Utilities | speckit-utils | process | Resume workflows, validate health, verify traceability |
-| Azure DevOps | azure-devops | integration | Sync user stories and tasks to Azure DevOps work items |
-| Jira | jira | integration | Create Epics, Stories, and Issues from specifications |
-| Project Health Check | doctor | visibility | Diagnose project across multiple dimensions |
-| Project Status | project-status | visibility | Show current SDD workflow progress |
+These are a stable contract between this plugin and a curated set of
+extension ids. The autopilot's post-implementation workflow auto-dispatches
+to them when they're present in `.specify/extensions/.registry`, and
+gracefully skips them when they're not. The ids are bare (no `spec-kit-`
+prefix) — they match what's published in the upstream
+`extensions/catalog.community.json`.
 
-**Note:** Community extensions are "discovery only" by default.
-Install them using `--from <zip-url>`:
+| Extension | ID | Category | Used by autopilot for |
+|-----------|----|----------|------------------------|
+| Archive | `archive` | docs | Archive Sweep at startup |
+| Project Health Check | `doctor` | visibility | Track A — post-impl health check |
+| Review | `review` | code | Track B — post-impl code review |
+| Verify | `verify` | code | Track C step 1 — implementation-vs-spec |
+| Verify Tasks | `verify-tasks` | code | Track C step 2 — phantom task detector |
+| Retrospective | `retrospective` | docs | Sequential after Cleanup — post-impl reflection |
+
+**Gotcha — the website's "ID" column shows the GitHub repo name, not the
+extension ID.** A row labeled `spec-kit-archive` on the
+[community extensions page](https://github.github.io/spec-kit/community/extensions.html)
+is the repo `stn1slv/spec-kit-archive`, but the actual extension `id` (and
+the directory it installs into) is bare: `archive`. Trust the `id` field in
+the catalog JSON or the extension's own `extension.yml`, not the website's
+column header.
+
+### Browsing the live catalog — three plays
+
+The full community catalog has grown to 100+ extensions and changes
+frequently upstream. Rather than mirroring it here (and going stale on
+every upstream merge), the coach reaches the authoritative sources on
+demand. Three plays cover the common interactions.
+
+#### Play 1 — Discovery ("what's available?", "find an extension for X")
+
+The user wants to browse or search the catalog. Run `specify extension
+search` against the user's local catalog stack (which respects custom
+catalogs and `SPECKIT_CATALOG_URL` env overrides):
 
 ```bash
-specify extension add verify --from https://github.com/author/spec-kit-verify/archive/refs/tags/v1.0.0.zip
+specify extension search                       # browse everything
+specify extension search <keyword>             # filter by keyword
+specify extension search --tag <tag>           # filter by tag
+specify extension search --author <author>     # filter by author
+specify extension search --verified            # verified extensions only
+```
+
+Parse the output and render it as a markdown table grouped by category.
+
+If `specify` is unavailable, fall back to the GitHub API against the
+authoritative catalog file:
+
+```bash
+gh api /repos/github/spec-kit/contents/extensions/catalog.community.json \
+  --jq '.content' | base64 -d | \
+  jq '.extensions[] | select(.id | test("KEYWORD"; "i")) | {id, name, category, description}'
+```
+
+If neither CLI is available, WebFetch the raw URL:
+`https://raw.githubusercontent.com/github/spec-kit/main/extensions/catalog.community.json`
+
+#### Play 2 — Deep dive ("tell me about the X extension")
+
+The user wants details on one extension. Run `specify extension info <id>`
+to get the full manifest, then surface the salient fields (commands
+provided, hook events, `requires.speckit_version`, tags, repository URL):
+
+```bash
+specify extension info <id>
+```
+
+If `specify` doesn't know about the extension (e.g., the user is asking
+about something they read on a blog), fetch the extension's own
+`extension.yml` from its repository. The `repository` field in the catalog
+entry gives the URL; the manifest path is typically
+`<repo>/blob/main/extension.yml`:
+
+```bash
+gh api /repos/<owner>/<repo>/contents/extension.yml \
+  --jq '.content' | base64 -d
+```
+
+Read out: `provides.commands` (what slash commands the extension adds),
+`hooks` (which phase boundaries it fires on), `requires.speckit_version`
+(compatibility), and `tags`. Cross-reference against the user's installed
+SpecKit version (`specify --version`) before recommending install.
+
+#### Play 3 — Install, configure, remove
+
+The user wants to change extension state. **Always confirm with the user
+before running any mutation.** Once confirmed:
+
+```bash
+# Install (community extensions are "discovery only" — must use --from)
+specify extension add <id> --from https://github.com/<owner>/<repo>/archive/refs/tags/<tag>.zip
+
+# Lifecycle
+specify extension remove <id>
+specify extension enable <id>
+specify extension disable <id>
+specify extension set-priority <id> <N>
+```
+
+**Every install / configure / hook-wiring response MUST end with a
+two-line closing block, verbatim. Do not paraphrase. Do not skip it,
+even if the rest of the response is long. The closing block is non-negotiable
+because long install walkthroughs reliably bury these two facts.**
+
+Closing block (copy verbatim, substituting `<id>` with the real extension id):
+
+```
+**No plugin update or restart needed** — the autopilot re-reads
+`.specify/extensions.yml` at every phase boundary, so any hook you wire
+here fires on the next autopilot run. No `claude` / `codex` restart,
+no `/plugin marketplace update`, no session reload.
+
+**Two config files to know:** `.specify/extensions/<id>/<id>-config.yml`
+(shared, commit to git) and `.specify/extensions/<id>/<id>-config.local.yml`
+(personal, gitignored).
+```
+
+The 4-tier configuration resolution (defaults → project config → local
+override → env var) is documented in the "Extension Configuration Layers"
+section below.
+
+If the new extension should fire automatically at a phase boundary,
+register a hook in `.specify/extensions.yml`:
+
+```yaml
+hooks:
+  after_implement:
+    - extension: <id>
+      command: speckit.<id>.run
+      enabled: true
+      optional: true
+      prompt: "Run <extension-name> after implementation?"
 ```
 
 ### extension.yml Schema (for creating extensions)
