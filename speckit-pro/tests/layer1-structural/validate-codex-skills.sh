@@ -170,6 +170,16 @@ $(cat "$ref_file")"
       _fail "expected all-phases-complete resume to continue into Post"
     fi
 
+    set_test "speckit-autopilot: blocks final answers while Post items remain incomplete"
+    if [[ "$runtime_doc" == *"Pre-final completion audit"* \
+      && "$runtime_doc" == *"MUST NOT send a final response"* \
+      && "$runtime_doc" == *"any Post item is pending, in_progress, or missing"* \
+      && "$runtime_doc" == *"Post: Retrospective"* ]]; then
+      _pass
+    else
+      _fail "expected a pre-final guard that prevents stopping after implementation while post items remain incomplete"
+    fi
+
     set_test "speckit-autopilot: documents skill-local agents/openai.yaml metadata"
     assert_contains "$body" 'agents/openai.yaml'
 
@@ -248,39 +258,11 @@ $(cat "$ref_file")"
         _fail "corresponding Claude skill not found at skills/$skill/SKILL.md"
       fi
       ;;
-    speckit-scaffold-spec)
-      if [ -f "$PLUGIN_ROOT/commands/scaffold-spec.md" ]; then
+    speckit-scaffold-spec|speckit-status|speckit-resolve-pr|speckit-install|speckit-upgrade)
+      if [ -f "$PLUGIN_ROOT/skills/$skill/SKILL.md" ]; then
         _pass
       else
-        _fail "corresponding Claude command not found at commands/scaffold-spec.md"
-      fi
-      ;;
-    speckit-status)
-      if [ -f "$PLUGIN_ROOT/commands/status.md" ]; then
-        _pass
-      else
-        _fail "corresponding Claude command not found at commands/status.md"
-      fi
-      ;;
-    speckit-resolve-pr)
-      if [ -f "$PLUGIN_ROOT/commands/resolve-pr.md" ]; then
-        _pass
-      else
-        _fail "corresponding Claude command not found at commands/resolve-pr.md"
-      fi
-      ;;
-    speckit-install)
-      if [ -f "$PLUGIN_ROOT/commands/install.md" ]; then
-        _pass
-      else
-        _fail "corresponding Claude command not found at commands/install.md"
-      fi
-      ;;
-    speckit-upgrade)
-      if [ -f "$PLUGIN_ROOT/commands/upgrade.md" ]; then
-        _pass
-      else
-        _fail "corresponding Claude command not found at commands/upgrade.md"
+        _fail "corresponding Claude skill not found at skills/$skill/SKILL.md"
       fi
       ;;
     install)
