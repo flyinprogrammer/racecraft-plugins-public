@@ -4,7 +4,7 @@
 
 This document defines the specification roadmap for the CI/CD & Release Pipeline. Each specification is executed end-to-end through the SpecKit workflow (specify → clarify → plan → checklist → tasks → analyze → implement) before moving to the next.
 
-**Current Status:** SPEC-001 through SPEC-004 are complete. SPEC-005 is the next pending spec.
+**Current Status:** All 5 specs complete. Feature complete as of 2026-05-26.
 
 **Branch:** `feat/cicd-release-pipeline`
 **Design Spec:** [2026-03-24-cicd-versioning-release-pipeline-design.md](../superpowers/specs/2026-03-24-cicd-versioning-release-pipeline-design.md)
@@ -69,7 +69,7 @@ SPEC-001 (Repository Foundation)
 | SPEC-002 | PR Checks Workflow | ✅ Complete | [SPEC-002-workflow.md](SPEC-002-workflow.md) | PR #2 merged |
 | SPEC-003 | Release Automation | ✅ Complete | [SPEC-003-workflow.md](SPEC-003-workflow.md) | PR #3 merged |
 | SPEC-004 | Integration & Verification | ✅ Complete | [SPEC-004-workflow.md](SPEC-004-workflow.md) | Complete; SPEC-005 unblocked |
-| SPEC-005 | Skill Trigger Quality | ⏳ Pending | — | Ready to start |
+| SPEC-005 | Skill Trigger Quality | ✅ Complete | — | PRs #89, #91 merged 2026-05-26 |
 
 **Status Legend:** ⏳ Pending | 🔄 In Progress | ✅ Complete | ⚠️ Blocked
 
@@ -226,7 +226,7 @@ Alternatives considered: opening a follow-up PR for the sync (adds noise and man
 ### SPEC-005: Skill Trigger Quality
 
 **Priority:** P1 | **Depends On:** SPEC-004 | **Enables:** Complete feature
-**Status:** ⏳ Pending | **Readiness:** Unblocked and ready to start.
+**Status:** ✅ Complete | **Outcome:** Eval isolation fixed (PRs #89, #69) and skill trigger descriptions rewritten (PR #91). Both `speckit-coach` and `speckit-autopilot` descriptions now follow Anthropic's guide. Layer 2 evals are immune to installed-plugin collision.
 
 **Goal:** Fix the pre-existing 10/20 Layer 2 trigger eval failure for both skills (`speckit-coach` and `speckit-autopilot`) by optimizing skill descriptions following Anthropic's official guide and fixing the eval framework's plugin-shadowing limitation.
 
