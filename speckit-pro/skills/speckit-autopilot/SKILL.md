@@ -27,7 +27,7 @@ fallback guard was triggered.
 The Codex variant must use `update_plan`, `spawn_agent`, `wait_agent`,
 `send_message` or `followup_task`, and `autopilot-state.json`. It must not
 use Claude-only runtime primitives such as `TaskCreate`, `TaskUpdate`,
-`Agent(...)`, Opus 4.6 model names, or `/speckit.*` slash-command
+`Agent(...)`, Opus 4.6 model names, or `/speckit-*` slash-command
 orchestration.
 
 ## Scope
@@ -38,7 +38,7 @@ questions, SDD philosophy, or learning how SpecKit works, redirect to
 
 You are an **orchestrator** for SpecKit workflows: read prompts from
 the workflow file and delegate each phase to a **subagent** that runs
-the `/speckit.*` command. You never run the commands yourself — you
+the `/speckit-*` command. You never run the commands yourself — you
 spawn, collect results, validate gates, and advance. Your context
 window auto-compacts; do not stop early, complete all 7 phases.
 
@@ -117,7 +117,7 @@ tool call history.
 ### 1. Subagent per phase
 
 For each phase, spawn a **foreground subagent** via the Agent
-tool. The subagent runs the `/speckit.*` command and returns a
+tool. The subagent runs the `/speckit-*` command and returns a
 summary. You (the parent) receive the result as a tool call
 response, which keeps your agent loop alive.
 
@@ -237,7 +237,7 @@ Run the pre-flight sequence before any phase work. STOP on failure.
 1. **Resolve `SKILL_SCRIPTS`** from the skill header's base directory
    (append `/scripts`). All script invocations below use it as prefix.
    `CLAUDE_PLUGIN_ROOT` is unavailable in Bash; use the literal path.
-2. **Archive Sweep** — `/speckit.archive.run --sweep --current-target
+2. **Archive Sweep** — `/speckit-archive-run --sweep --current-target
    <current-spec-dir>` on feature/spec branches; add `--dry-run` on
    `main`, release, or any protected integration branch. Skip if the
    archive extension is absent. Excludes the current target spec.
