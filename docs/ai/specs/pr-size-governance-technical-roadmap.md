@@ -3,7 +3,7 @@
 > Companion to the research synthesis at
 > [`../research/spec-pr-size-governance-research.md`](../research/spec-pr-size-governance-research.md).
 > **Source PRD:** [`../../prd-pr-size-governance.md`](../../prd-pr-size-governance.md).
-> Status: **in progress** — Phase 1 relocation done (PRSG-001 ✅ PR #111); Phase 2 navigation spine done (PRSG-002 ✅ PR #116; PRSG-003 ✅ PR #121; PRSG-004 ✅ PR #129); Phase 3 upstream sizing done (PRSG-005 ✅ PR #120; PRSG-006 ✅ PR #119). PRSG-011 (Phase 6 retro-migration) is scaffolded and in progress on `prsg-011-retro-migration`; pending: PRSG-007→008→009 (Phase 4 split-PR engine), PRSG-010 (Phase 5). Created 2026-06-03; status refreshed 2026-06-08.
+> Status: **in progress** — Phase 1 relocation done (PRSG-001 ✅ PR #111); Phase 2 navigation spine done (PRSG-002 ✅ PR #116; PRSG-003 ✅ PR #121; PRSG-004 ✅ PR #129); Phase 3 upstream sizing done (PRSG-005 ✅ PR #120; PRSG-006 ✅ PR #119). In progress: PRSG-007 (Phase 4, P1 — atomicity router, PR #133) and PRSG-011 (Phase 6 retro-migration, on `prsg-011-retro-migration`). Pending: PRSG-008→009 (Phase 4 split-PR engine), PRSG-010 (Phase 5). Created 2026-06-03; status refreshed 2026-06-09.
 
 ## Vision
 
@@ -177,7 +177,7 @@ escape hatch with typed exceptions.
 
 ---
 
-### PRSG-007 — Atomicity-test router (read-only classifier)  · Phase 4 · P1 · engine MVP
+### PRSG-007 — Atomicity-test router (read-only classifier)  · Phase 4 · P1 · engine MVP · 🔄 In Progress
 **Why:** the brain that makes split-PR a *safe* default. Ship as a read-only classifier
 that emits a routing decision into the workflow file before any emission is wired.
 
@@ -238,7 +238,8 @@ real.
 - **US2 — Monster-epics (O5).** Epic → child specs that SHARE one design-concept +
   retrospective (thin per-child deltas, `depends-on` order); `speckit-status` rolls
   children up. Reserved for genuine monsters O4 can't slice thin.
-- **Skills/files:** `reviewability-gate.sh`, roadmap template, `speckit-scaffold-spec` (epic schema), `speckit-status` (rollup).
+- **US3 — Deepen the contextual atomicity probes.** Promote PRSG-007's advisory-hint stubs — flag-system, release-cadence, consumer-locality — from non-decisive hints to full-depth routing signals in `atomicity-route.sh`.
+- **Skills/files:** `reviewability-gate.sh`, `atomicity-route.sh`, roadmap template, `speckit-scaffold-spec` (epic schema), `speckit-status` (rollup).
 - **Deps:** ALL of Phases 1–4. **Budget:** ~400 LOC. **Tests:** L4, L1.
 
 ---
