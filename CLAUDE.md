@@ -429,3 +429,10 @@ git commit -m "chore: sync plugin payloads and marketplace versions"
 git push origin <sync-branch>
 gh pr create --base main --head <sync-branch> --title "chore: sync plugin payloads and marketplace versions"
 ```
+
+## Active Technologies
+- Bash 4+ shell scripts, Markdown skills, YAML manifests, JSON Schema 2020-12 contracts, and `bash`, `jq`, `git`, `gh` at PR-emission boundaries (prsg-010-harden-the-hatch)
+- Repository files only: feature artifacts, contract schemas, workflow state JSON, and generated re-slicing packets (prsg-010-harden-the-hatch)
+
+## Recent Changes
+- prsg-010-harden-the-hatch: Added PRSG-010 foundation artifacts, contract schemas, workflow state updates, and planning docs for the split PR stack.
