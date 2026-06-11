@@ -492,21 +492,37 @@ Focus on:
 | US1 hatch backstop | T007-T023 | Complete | Added final reviewability backstop script, production state/re-slicing schemas, typed-exception provenance checks, Claude/Codex guidance, dist mirrors, and Layer 4 fixtures. Validation: `test-final-reviewability-backstop.sh` 31/31, `test-reviewability-gate.sh` 92/92, Layer 4 1230/1230. |
 | US3 contextual probes | T024-T032 | Complete | Added guarded cutover, release-held cutover, weak evidence, consumer-locality, out-of-tree, and conflict fixtures; promoted production routing schema; implemented closed contextual signals/hints while preserving hard-atomic and releasability precedence. Validation: `test-atomicity-route.sh` 109/109, `test-plan-layers.sh` 66/66, `test-multi-pr-emission.sh` 81/81. |
 | US2 O5 scaffold/status | T033-T045 | Complete | Added O5 topology script/schema, valid/invalid/mixed-state fixtures, flat scan regression, scaffold fallback guidance, and status topology/re-slicing guidance across Claude/Codex/dist. Validation: `test-o5-topology.sh` 25/25, `test-generate-spec-index.sh` 87/87. |
-| Polish | Pending | Pending | |
+| Polish | T046-T057 | Complete | Added PRSG-010 Layer 8 parity fixture, roadmap/template provenance guidance, structural script/contract/template assertions, and PR review packet confirmation. Validation after rebase onto `origin/main`: Layer 8 dry-run 3/3, Layer 1 978/978, Layer 4 1283/1283, default 2451/2451, spec-index current, diff check clean. |
 
 ---
 
 ## Post-Implementation Checklist
 
-- [ ] All tasks complete in `tasks.md`
-- [ ] `bash tests/speckit-pro/run-all.sh --layer 1` passes
-- [ ] `bash tests/speckit-pro/run-all.sh --layer 4` passes
-- [ ] `bash tests/speckit-pro/run-all.sh` passes
-- [ ] Layer 8 parity dry-run passes if mirrored skill prose changed
-- [ ] Final diff-gate behavior is exercised with an unexcepted block fixture
-- [ ] O5 parent/child status rollup is fixture-verified
-- [ ] Contextual probes are fixture-verified for high-confidence and weak-evidence cases
-- [ ] PRSG-010 split-PR emission evidence is recorded
+- [x] All tasks complete in `tasks.md`
+- [x] `bash tests/speckit-pro/run-all.sh --layer 1` passes
+- [x] `bash tests/speckit-pro/run-all.sh --layer 4` passes
+- [x] `bash tests/speckit-pro/run-all.sh` passes
+- [x] Layer 8 parity dry-run passes if mirrored skill prose changed
+- [x] Final diff-gate behavior is exercised with an unexcepted block fixture
+- [x] O5 parent/child status rollup is fixture-verified
+- [x] Contextual probes are fixture-verified for high-confidence and weak-evidence cases
+- [x] PRSG-010 split-PR emission evidence is recorded
+
+### Split Publish Stack Evidence
+
+The original PRSG-010C publish boundary blocked on total file count, so the
+publish stack was resliced without changing final content. Each boundary now
+passes the final reviewability gate with `status=warn` and no blockers.
+
+| Branch | Base | Gate |
+|--------|------|------|
+| `prsg-010-foundation` | `origin/main` | warn, 21 files, no blockers |
+| `prsg-010a-backstop-core` | `prsg-010-foundation` | warn, 21 files, no blockers |
+| `prsg-010a-final-hatch` | `prsg-010a-backstop-core` | warn, 17 files, no blockers |
+| `prsg-010b-contextual-router` | `prsg-010a-final-hatch` | warn, 16 files, no blockers |
+| `prsg-010c1-o5-topology-core` | `prsg-010b-contextual-router` | warn, 23 files, no blockers |
+| `prsg-010c2-o5-status-guidance` | `prsg-010c1-o5-topology-core` | warn, 14 files, no blockers |
+| `prsg-010d-parity-polish` | `prsg-010c2-o5-status-guidance` | warn, 13 files, no blockers |
 
 ---
 
