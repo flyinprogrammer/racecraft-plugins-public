@@ -9,6 +9,7 @@ TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$TEST_DIR/../../.." && pwd)"
 SCRIPT="$REPO_ROOT/speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh"
 FIXTURE_ROOT="$TEST_DIR/fixtures/multi-pr-emission"
+MARKER_FIXTURE_ROOT="$TEST_DIR/fixtures/marker-plan"
 
 SANDBOX=$(mktemp -d)
 trap 'rm -rf "$SANDBOX"' EXIT
@@ -66,14 +67,19 @@ malformed_plan="$FIXTURE_ROOT/layer-plans/malformed.json"
 empty_state="$FIXTURE_ROOT/emission-state/empty-autopilot-state.json"
 duplicate_state="$FIXTURE_ROOT/emission-state/duplicate-slice-keys.json"
 full_evidence="$SANDBOX/specs/prsg-009-multi-pr-emission/.process/emission/full-regression.txt"
+marker_full_evidence="$SANDBOX/specs/prsg-013-reviewability-markers/.process/emission/full-regression.txt"
 custom_feature_plan="$SANDBOX/custom-feature-plan.json"
 custom_full_evidence="$SANDBOX/specs/prsg-999-custom-feature/.process/emission/full-regression.txt"
 wrong_feature_evidence="$SANDBOX/specs/prsg-009-multi-pr-emission/.process/emission/wrong-feature.txt"
 declared_changed_files="$SANDBOX/declared-changed-files.txt"
 scope_violation_files="$SANDBOX/scope-violation-files.txt"
+marker_declared_changed_files="$SANDBOX/marker-declared-changed-files.txt"
+marker_scope_violation_files="$SANDBOX/marker-scope-violation-files.txt"
 
 mkdir -p "$(dirname "$full_evidence")"
 printf '%s\n' 'DEFAULT_VERIFY passed for PRSG-009 fixture' > "$full_evidence"
+mkdir -p "$(dirname "$marker_full_evidence")"
+printf '%s\n' 'DEFAULT_VERIFY passed for PRSG-013 marker fixture' > "$marker_full_evidence"
 mkdir -p "$(dirname "$custom_full_evidence")" "$(dirname "$wrong_feature_evidence")"
 printf '%s\n' 'DEFAULT_VERIFY passed for custom feature fixture' > "$custom_full_evidence"
 printf '%s\n' 'wrong feature evidence path' > "$wrong_feature_evidence"
@@ -86,6 +92,16 @@ EOF
 cat > "$scope_violation_files" <<'EOF'
 tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh
 docs/unplanned-runtime-change.md
+EOF
+cat > "$marker_declared_changed_files" <<'EOF'
+tests/speckit-pro/layer4-scripts/fixtures/marker-plan/valid-pr-marker-plan.json
+tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh
+speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh
+speckit-pro/skills/speckit-autopilot/contracts/multi-pr-emission-state.schema.json
+EOF
+cat > "$marker_scope_violation_files" <<'EOF'
+speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh
+docs/unplanned-marker-change.md
 EOF
 
 set_test "invalid layer-plan status blocks before mutation"
@@ -352,6 +368,513 @@ assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: changed fil
 
 set_test "undeclared changed files do not write command capture"
 assert_file_not_exists "$scope_candidate_dir/commands.candidate.json"
+
+section "PRSG-013 marker-aware emission"
+
+valid_marker_plan="$MARKER_FIXTURE_ROOT/valid-pr-marker-plan.json"
+stale_marker_plan="$MARKER_FIXTURE_ROOT/stale-pr-marker-plan.json"
+placeholder_marker_plan="$MARKER_FIXTURE_ROOT/placeholder-pr-marker-plan.json"
+malformed_marker_plan="$MARKER_FIXTURE_ROOT/malformed-pr-marker-plan.json"
+marker_split_result="$MARKER_FIXTURE_ROOT/final-marker-split-result.json"
+single_atomic_split_result="$MARKER_FIXTURE_ROOT/hazard-single-atomic-split-result.json"
+unreleasable_split_result="$MARKER_FIXTURE_ROOT/hazard-unreleasable-split-result.json"
+navigable_split_result="$MARKER_FIXTURE_ROOT/navigable-releasable-split-result.json"
+mismatched_split_result="$MARKER_FIXTURE_ROOT/mismatched-marker-split-result.json"
+order_mismatch_split_result="$MARKER_FIXTURE_ROOT/order-mismatch-split-result.json"
+
+marker_candidate_dir="$SANDBOX/marker-candidates"
+
+set_test "marker-aware dry run emits one marker packet per marker in review order"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --changed-files "$marker_declared_changed_files" \
+  --candidate-dir "$marker_candidate_dir" || result=$?
+assert_eq "0" "$result" "exit code"
+
+marker_state_json="$(cat "$marker_candidate_dir/multi-pr-emission-state.candidate.json" 2>/dev/null || true)"
+marker_commands_json="$(cat "$marker_candidate_dir/commands.candidate.json" 2>/dev/null || true)"
+marker_foundation_packet="$marker_candidate_dir/marker-packets/foundation.json"
+marker_us1_packet="$marker_candidate_dir/marker-packets/us1.json"
+marker_us2_packet="$marker_candidate_dir/marker-packets/us2-part1.json"
+marker_foundation_packet_json="$(cat "$marker_foundation_packet" 2>/dev/null || true)"
+marker_us1_packet_json="$(cat "$marker_us1_packet" 2>/dev/null || true)"
+marker_us2_packet_json="$(cat "$marker_us2_packet" 2>/dev/null || true)"
+
+set_test "marker packet files are emitted for every planned marker"
+if [ -f "$marker_foundation_packet" ] && [ -f "$marker_us1_packet" ] && [ -f "$marker_us2_packet" ]; then
+  _pass
+else
+  _fail "expected marker packets for foundation, us1, and us2-part1"
+fi
+
+set_test "marker candidate state records marker mode and marker review order"
+json_check "$marker_state_json" \
+  "data['multi_pr_emission']['emission_mode'] == 'marker' and data['multi_pr_emission']['route'] == 'marker_split' and [s['marker_id'] for s in data['multi_pr_emission']['slices']] == ['foundation', 'us1', 'us2-part1'] and [s['review_order'] for s in data['multi_pr_emission']['slices']] == [1, 2, 3]" \
+  "marker candidate state should preserve marker review order"
+
+set_test "marker command capture preserves marker branch PR operation order"
+json_check "$marker_commands_json" \
+  "[op['slice_id'] for op in data['operations'] if op['action'] == 'gh_pr_create'] == ['foundation', 'us1', 'us2-part1'] and [op['command'][0:8] for op in data['operations'] if op['action'] == 'gh_pr_create'] == [['gh', 'pr', 'create', '--base', 'main', '--head', 'prsg-013-reviewability-markers/01-foundation', '--body-file'], ['gh', 'pr', 'create', '--base', 'prsg-013-reviewability-markers/01-foundation', '--head', 'prsg-013-reviewability-markers/02-us1', '--body-file'], ['gh', 'pr', 'create', '--base', 'prsg-013-reviewability-markers/02-us1', '--head', 'prsg-013-reviewability-markers/03-us2-part1', '--body-file']]" \
+  "marker dry-run command capture should preserve marker branch order"
+
+set_test "marker packet shape includes marker IDs, final split evidence, and checkpoint evidence"
+json_check "$marker_foundation_packet_json" \
+  "data['slice_id'] == 'foundation' and data['marker_id'] == 'foundation' and data['source_marker_ids'] == ['foundation'] and data['route'] == 'marker_split' and data['marker_split_evidence'] == '$marker_split_result' and data['implementation_checkpoint_evidence'] == 'specs/prsg-013-reviewability-markers/.process/markers/foundation-checkpoint.md' and data['warnings'][0]['code'] == 'FOUNDATION_SIZE_WARN'" \
+  "foundation marker packet should carry marker-specific evidence and warnings"
+
+set_test "marker packets carry declared files and tests from marker scope"
+json_check "$marker_us1_packet_json" \
+  "data['declared_files'] == ['speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh'] and data['declared_tests'] == ['bash tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh']" \
+  "us1 marker packet should use marker declared file/test scope"
+
+set_test "marker packet validation does not require PRSG-012 title/body fields"
+json_check "$marker_us2_packet_json" \
+  "'title' not in data and 'body' not in data and data['marker_id'] == 'us2-part1'" \
+  "marker packet validation should not implement reviewer-ready title/body checks"
+
+set_test "marker-aware stdout identifies marker mode and marker count"
+json_check "$output" \
+  "data['script'] == 'multi-pr-emission' and data['status'] == 'validated' and data['emission']['mode'] == 'marker' and data['emission']['route'] == 'marker_split' and data['emission']['marker_count'] == 3" \
+  "stdout should describe marker-aware dry-run result"
+
+set_test "single-atomic hazard collapses marker emission to one full-spec packet"
+single_atomic_candidate_dir="$SANDBOX/single-atomic-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$single_atomic_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$single_atomic_candidate_dir" || result=$?
+assert_eq "0" "$result" "exit code"
+
+single_atomic_packet_json="$(cat "$single_atomic_candidate_dir/marker-packets/full-spec.json" 2>/dev/null || true)"
+single_atomic_state_json="$(cat "$single_atomic_candidate_dir/multi-pr-emission-state.candidate.json" 2>/dev/null || true)"
+
+set_test "single-atomic full-spec packet preserves ordered source marker ids"
+json_check "$single_atomic_packet_json" \
+  "data['marker_id'] == 'full-spec' and data['source_marker_ids'] == ['foundation', 'us1', 'us2-part1'] and data['route'] == 'hazard_collapsed' and data['review_order'] == 1 and data['source_marker_checkpoints'] == ['specs/prsg-013-reviewability-markers/.process/markers/foundation-checkpoint.md', 'specs/prsg-013-reviewability-markers/.process/markers/us1-checkpoint.md', 'specs/prsg-013-reviewability-markers/.process/markers/us2-part1-checkpoint.md'] and data['warnings'][0]['code'] == 'HAZARD_COLLAPSE'" \
+  "hazard-collapsed packet should preserve original marker IDs and checkpoints"
+
+set_test "single-atomic candidate state emits one full-spec slice"
+json_check "$single_atomic_state_json" \
+  "data['multi_pr_emission']['route'] == 'hazard_collapsed' and [s['marker_id'] for s in data['multi_pr_emission']['slices']] == ['full-spec'] and data['multi_pr_emission']['slices'][0]['source_marker_ids'] == ['foundation', 'us1', 'us2-part1']" \
+  "hazard-collapsed state should contain one full-spec emission slice"
+
+set_test "unreleasable hazard also collapses to full-spec"
+unreleasable_candidate_dir="$SANDBOX/unreleasable-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$unreleasable_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$unreleasable_candidate_dir" || result=$?
+assert_eq "0" "$result" "exit code"
+assert_file_exists "$unreleasable_candidate_dir/marker-packets/full-spec.json"
+
+set_test "one-navigable releasable route does not collapse by itself"
+navigable_candidate_dir="$SANDBOX/navigable-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$navigable_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$navigable_candidate_dir" || result=$?
+assert_eq "0" "$result" "exit code"
+navigable_state_json="$(cat "$navigable_candidate_dir/multi-pr-emission-state.candidate.json" 2>/dev/null || true)"
+json_check "$navigable_state_json" \
+  "data['multi_pr_emission']['route'] == 'marker_split' and [s['marker_id'] for s in data['multi_pr_emission']['slices']] == ['foundation', 'us1', 'us2-part1']" \
+  "one-navigable-PR with releasable=true should keep marker-split emission"
+assert_file_not_exists "$navigable_candidate_dir/marker-packets/full-spec.json"
+
+set_test "stale marker plan stops before command capture or PR body generation"
+invalid_marker_candidate_dir="$SANDBOX/stale-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$stale_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$invalid_marker_candidate_dir" || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: marker plan status stale"
+assert_file_not_exists "$invalid_marker_candidate_dir/commands.candidate.json"
+assert_file_not_exists "$invalid_marker_candidate_dir/pr-bodies"
+
+set_test "malformed marker plan stops before side effects"
+malformed_marker_candidate_dir="$SANDBOX/malformed-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$malformed_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$malformed_marker_candidate_dir" || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: invalid marker plan JSON"
+assert_file_not_exists "$malformed_marker_candidate_dir/commands.candidate.json"
+
+set_test "placeholder-filled marker packet scope stops before side effects"
+placeholder_marker_candidate_dir="$SANDBOX/placeholder-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$placeholder_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$placeholder_marker_candidate_dir" || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: invalid marker packet shape: placeholder declared file path for foundation"
+assert_file_not_exists "$placeholder_marker_candidate_dir/commands.candidate.json"
+
+set_test "marker split result with unknown marker stops before side effects"
+mismatched_marker_candidate_dir="$SANDBOX/mismatched-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$mismatched_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$mismatched_marker_candidate_dir" || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: marker split result references unknown marker us9"
+assert_file_not_exists "$mismatched_marker_candidate_dir/commands.candidate.json"
+
+set_test "marker split result with order mismatch stops before side effects"
+order_mismatch_candidate_dir="$SANDBOX/order-mismatch-marker-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$order_mismatch_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$order_mismatch_candidate_dir" || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: marker split result review_order mismatch for us1"
+assert_file_not_exists "$order_mismatch_candidate_dir/commands.candidate.json"
+
+set_test "marker changed-file scope mismatch stops before side effects"
+marker_scope_candidate_dir="$SANDBOX/marker-scope-candidates"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --changed-files "$marker_scope_violation_files" \
+  --candidate-dir "$marker_scope_candidate_dir" || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: changed file outside declared marker scope: docs/unplanned-marker-change.md"
+assert_file_not_exists "$marker_scope_candidate_dir/commands.candidate.json"
+
+set_test "live marker emission rejects candidate dry-run mode"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --candidate-dir "$SANDBOX/live-candidates" \
+  --live || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: --live cannot be combined with --candidate-dir"
+
+set_test "live marker emission rejects fixture mode"
+live_pr_fixture="$SANDBOX/live-pr-fixture.json"
+printf '%s\n' '{"existing":[],"created":[]}' > "$live_pr_fixture"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$empty_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$marker_full_evidence" \
+  --pr-fixture "$live_pr_fixture" \
+  --live || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: --live cannot be combined with --pr-fixture"
+
+make_marker_persist_repo() {
+  local root="$1"
+  mkdir -p \
+    "$root/docs/ai/specs/.process" \
+    "$root/specs/prsg-013-reviewability-markers/.process/emission" \
+    "$root/specs/prsg-013-reviewability-markers/.process"
+  printf '{}\n' > "$root/docs/ai/specs/.process/autopilot-state.json"
+  cat > "$root/specs/prsg-013-reviewability-markers/SPEC-MOC.md" <<'EOF'
+---
+structureVersion: 1
+spec_id: PRSG-013
+---
+
+# PRSG-013 Fixture
+
+<!-- GENERATED:PRS:START (do not edit; regenerated by generate-spec-index.sh) -->
+<!-- GENERATED:PRS:END -->
+EOF
+  cat > "$root/docs/ai/specs/.process/PRSG-013-workflow.md" <<'EOF'
+# PRSG-013 Workflow Fixture
+
+## Phase 7: Implement
+EOF
+  printf '%s\n' 'PRSG-013 full regression fixture passed' > "$root/specs/prsg-013-reviewability-markers/.process/emission/full-regression.txt"
+  git -C "$root" init >/dev/null 2>&1
+}
+
+make_live_marker_success_repo() {
+  local root="$1" remote="$2"
+  make_marker_persist_repo "$root"
+  git -C "$root" config user.email "test@test"
+  git -C "$root" config user.name "SpecKit Test"
+  git -C "$root" config commit.gpgsign false
+  git -C "$root" checkout -q -b main
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "base fixture"
+
+  git -C "$root" checkout -q -b fixture-feature
+  mkdir -p "$root/specs/prsg-013-reviewability-markers/.process/markers"
+
+  printf '%s\n' 'foundation checkpoint complete' > "$root/specs/prsg-013-reviewability-markers/.process/markers/foundation-checkpoint.md"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "foundation checkpoint"
+  git -C "$root" tag marker-foundation
+
+  printf '%s\n' 'us1 checkpoint complete' > "$root/specs/prsg-013-reviewability-markers/.process/markers/us1-checkpoint.md"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "us1 checkpoint"
+  git -C "$root" tag marker-us1
+
+  printf '%s\n' 'us2 part1 checkpoint complete' > "$root/specs/prsg-013-reviewability-markers/.process/markers/us2-part1-checkpoint.md"
+  git -C "$root" add -A
+  git -C "$root" commit -q -m "us2 part1 checkpoint"
+  git -C "$root" tag marker-us2-part1
+
+  git -C "$root" checkout -q main
+  git init --bare "$remote" >/dev/null 2>&1
+  git -C "$root" remote add origin "$remote"
+  git -C "$root" push -u origin main >/dev/null 2>&1
+}
+
+write_fake_live_gh() {
+  local bin_dir="$1"
+  mkdir -p "$bin_dir"
+  cat > "$bin_dir/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+log="${FAKE_GH_LOG:?}"
+repo="${FAKE_GH_REPO:-$PWD}"
+
+if [ "${1:-}" != "pr" ]; then
+  printf 'unsupported gh command\n' >&2
+  exit 1
+fi
+
+subcommand="${2:-}"
+shift 2
+
+case "$subcommand" in
+  list)
+    printf '[]\n'
+    ;;
+  create)
+    base=""
+    head=""
+    title=""
+    body_file=""
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --base) base="${2:-}"; shift 2 ;;
+        --head) head="${2:-}"; shift 2 ;;
+        --title) title="${2:-}"; shift 2 ;;
+        --body-file) body_file="${2:-}"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+    [ -n "$base" ] && [ -n "$head" ] && [ -n "$body_file" ] || exit 1
+    count=0
+    if [ -f "$log" ]; then
+      count="$(wc -l < "$log" | tr -d ' ')"
+    fi
+    number=$((900 + count + 1))
+    url="https://github.example/pr/$number"
+    jq -cn \
+      --arg base "$base" \
+      --arg head "$head" \
+      --arg title "$title" \
+      --arg body_file "$body_file" \
+      --arg url "$url" \
+      --argjson number "$number" \
+      '{number:$number,url:$url,state:"OPEN",base:$base,head:$head,title:$title,body_file:$body_file}' >> "$log"
+    printf '%s\n' "$url"
+    ;;
+  view)
+    ref="${1:-}"
+    [ -n "$ref" ] || exit 1
+    record="$(jq -c --arg url "$ref" 'select(.url == $url)' "$log" | tail -1)"
+    [ -n "$record" ] || exit 1
+    number="$(printf '%s' "$record" | jq -r '.number')"
+    url="$(printf '%s' "$record" | jq -r '.url')"
+    head="$(printf '%s' "$record" | jq -r '.head')"
+    head_sha="$(git -C "$repo" rev-parse "$head")"
+    jq -cn \
+      --argjson number "$number" \
+      --arg url "$url" \
+      --arg state "OPEN" \
+      --arg headRefOid "$head_sha" \
+      '{number:$number,url:$url,state:$state,headRefOid:$headRefOid}'
+    ;;
+  *)
+    printf 'unsupported gh pr command: %s\n' "$subcommand" >&2
+    exit 1
+    ;;
+esac
+EOF
+  chmod +x "$bin_dir/gh"
+}
+
+set_test "live marker emission requires checkpoint SHAs before branch mutation"
+live_marker_repo="$SANDBOX/live-marker-repo"
+make_marker_persist_repo "$live_marker_repo"
+live_marker_state="$live_marker_repo/docs/ai/specs/.process/autopilot-state.json"
+live_marker_evidence="$live_marker_repo/specs/prsg-013-reviewability-markers/.process/emission/full-regression.txt"
+result=0
+run_emission output stderr_output "$SCRIPT" \
+  --marker-plan "$valid_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$live_marker_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha 0123456789abcdef \
+  --full-verification-evidence "$live_marker_evidence" \
+  --live || result=$?
+assert_eq "2" "$result" "exit code"
+assert_contains "$stderr_output" "multi-pr-emission.sh: input_error: --live requires checkpoint_sha for slice foundation"
+
+set_test "live marker emission creates marker branches and PRs from checkpoint SHAs"
+live_success_repo="$SANDBOX/live-marker-success-repo"
+live_success_remote="$SANDBOX/live-marker-success-remote.git"
+make_live_marker_success_repo "$live_success_repo" "$live_success_remote"
+live_success_state="$live_success_repo/docs/ai/specs/.process/autopilot-state.json"
+live_success_evidence="$live_success_repo/specs/prsg-013-reviewability-markers/.process/emission/full-regression.txt"
+live_success_prs="$live_success_repo/specs/prsg-013-reviewability-markers/.process/prs.json"
+live_success_commands="$SANDBOX/live-marker-success-commands.json"
+live_success_marker_plan="$SANDBOX/live-marker-plan-with-shas.json"
+live_success_fake_bin="$SANDBOX/live-marker-fake-bin"
+live_success_gh_log="$SANDBOX/live-marker-gh-create.jsonl"
+write_fake_live_gh "$live_success_fake_bin"
+live_base_sha="$(git -C "$live_success_repo" rev-parse main)"
+live_foundation_sha="$(git -C "$live_success_repo" rev-parse marker-foundation)"
+live_us1_sha="$(git -C "$live_success_repo" rev-parse marker-us1)"
+live_us2_sha="$(git -C "$live_success_repo" rev-parse marker-us2-part1)"
+jq \
+  --arg foundation_sha "$live_foundation_sha" \
+  --arg us1_sha "$live_us1_sha" \
+  --arg us2_sha "$live_us2_sha" '
+    .markers |= map(
+      if .id == "foundation" then .implementation_checkpoint.head_sha = $foundation_sha
+      elif .id == "us1" then .implementation_checkpoint.head_sha = $us1_sha
+      elif .id == "us2-part1" then .implementation_checkpoint.head_sha = $us2_sha
+      else . end
+    )
+  ' "$valid_marker_plan" > "$live_success_marker_plan"
+
+result=0
+run_emission output stderr_output env \
+  PATH="$live_success_fake_bin:$PATH" \
+  FAKE_GH_LOG="$live_success_gh_log" \
+  FAKE_GH_REPO="$live_success_repo" \
+  "$SCRIPT" \
+  --marker-plan "$live_success_marker_plan" \
+  --marker-split-result "$marker_split_result" \
+  --state "$live_success_state" \
+  --feature-branch prsg-013-reviewability-markers \
+  --base main \
+  --base-sha "$live_base_sha" \
+  --full-verification-evidence "$live_success_evidence" \
+  --command-log "$live_success_commands" \
+  --live || result=$?
+assert_eq "0" "$result" "exit code"
+
+set_test "live marker emission reports branch and pull-request mutation"
+json_check "$output" \
+  "data['status'] == 'persisted' and data['mutation']['branches'] == True and data['mutation']['pull_requests'] == True and data['emission']['mode'] == 'marker' and data['emission']['marker_count'] == 3" \
+  "live marker emission should report live branch and PR mutation"
+
+set_test "live marker emission pushes each marker branch to its checkpoint SHA"
+remote_foundation_sha="$(git -C "$live_success_remote" rev-parse refs/heads/prsg-013-reviewability-markers/01-foundation)"
+remote_us1_sha="$(git -C "$live_success_remote" rev-parse refs/heads/prsg-013-reviewability-markers/02-us1)"
+remote_us2_sha="$(git -C "$live_success_remote" rev-parse refs/heads/prsg-013-reviewability-markers/03-us2-part1)"
+if [ "$remote_foundation_sha" = "$live_foundation_sha" ] && [ "$remote_us1_sha" = "$live_us1_sha" ] && [ "$remote_us2_sha" = "$live_us2_sha" ]; then
+  _pass
+else
+  _fail "marker branches should point at their checkpoint SHAs"
+fi
+
+live_success_gh_json="$(jq -s '.' "$live_success_gh_log" 2>/dev/null || printf '[]')"
+set_test "live marker emission creates PRs with marker branch bases"
+json_check "$live_success_gh_json" \
+  "[r['head'] for r in data] == ['prsg-013-reviewability-markers/01-foundation', 'prsg-013-reviewability-markers/02-us1', 'prsg-013-reviewability-markers/03-us2-part1'] and [r['base'] for r in data] == ['main', 'prsg-013-reviewability-markers/01-foundation', 'prsg-013-reviewability-markers/02-us1']" \
+  "live gh create calls should preserve marker branch/base order"
+
+live_success_state_json="$(cat "$live_success_state" 2>/dev/null || true)"
+set_test "live marker emission completes state with opened PRs"
+json_check "$live_success_state_json" \
+  "data['multi_pr_emission']['status'] == 'complete' and data['multi_pr_emission']['next_slice_id'] is None and [s['status'] for s in data['multi_pr_emission']['slices']] == ['pr_opened', 'pr_opened', 'pr_opened'] and [s['head_sha'] for s in data['multi_pr_emission']['slices']] == ['$live_foundation_sha', '$live_us1_sha', '$live_us2_sha']" \
+  "live state should complete with checkpoint-backed opened PRs"
+
+live_success_prs_json="$(cat "$live_success_prs" 2>/dev/null || true)"
+set_test "live marker emission writes PRS manifest with checkpoint heads"
+json_check "$live_success_prs_json" \
+  "data['schemaVersion'] == 2 and [r['slice_id'] for r in data['records']] == ['foundation', 'us1', 'us2-part1'] and [r['head_sha'] for r in data['records']] == ['$live_foundation_sha', '$live_us1_sha', '$live_us2_sha'] and [r['pr_number'] for r in data['records']] == [901, 902, 903]" \
+  "live PRS manifest should preserve checkpoint head SHAs"
+
+live_success_commands_json="$(cat "$live_success_commands" 2>/dev/null || true)"
+set_test "live marker emission records git and gh operations"
+json_check "$live_success_commands_json" \
+  "len([op for op in data['operations'] if op['action'] == 'git_branch']) == 3 and len([op for op in data['operations'] if op['action'] == 'git_push']) == 3 and len([op for op in data['operations'] if op['action'] == 'gh_pr_create']) == 3" \
+  "live command log should record branch, push, and PR create operations"
 
 section "US2 persistence and resume reconciliation"
 
