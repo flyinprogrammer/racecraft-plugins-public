@@ -318,6 +318,34 @@ validate_editable_fields() {
     "Regenerate editable field metadata from the canonical packet renderer."
 }
 
+write_visible_markdown() {
+  local input="$1" output="$2"
+  awk '
+    BEGIN { in_fence=0; in_comment=0 }
+    {
+      line=$0
+      trimmed=line
+      sub(/^[ \t]+/, "", trimmed)
+      sub(/[ \t\r]+$/, "", trimmed)
+
+      if (in_comment) {
+        if (trimmed ~ /-->/) in_comment=0
+        next
+      }
+      if (!in_fence && trimmed ~ /^<!--/) {
+        if (trimmed !~ /-->/) in_comment=1
+        next
+      }
+      if (trimmed ~ /^(```|~~~)/) {
+        in_fence = !in_fence
+        next
+      }
+      if (in_fence) next
+      print line
+    }
+  ' "$input" > "$output"
+}
+
 validate_body_file() {
   local body_file="$1" packet="$2" body_abs="$REPO_ROOT/$body_file"
   if [ -z "$body_file" ]; then
@@ -337,7 +365,10 @@ validate_body_file() {
     return
   fi
 
-  local expected headings
+  local visible_body expected headings
+  visible_body="$tmp_dir/body-visible.md"
+  write_visible_markdown "$body_abs" "$visible_body"
+
   expected="Summary|What Changed|Why It Matters|How To Review|How To UAT|Verification|Scope|Known Gaps"
   headings="$(
     awk '
@@ -352,7 +383,7 @@ validate_body_file() {
           printf "%s", heading
         }
       }
-    ' "$body_abs"
+    ' "$visible_body"
   )"
   if [ "$headings" != "$expected" ]; then
     add_failure "body.heading_order" "body_file" \
@@ -366,7 +397,7 @@ validate_body_file() {
       "Regenerate the body from finalized packet evidence before PR creation."
   fi
 
-  if grep -Eiq 'Adds reviewer-ready split PR packet evidence for|Prepared `[^`]+` for review against|Slice PR body placeholder|^slice_id:|^slice_packet:' "$body_abs"; then
+  if grep -Eiq 'Adds reviewer-ready split PR packet evidence for|Prepared `[^`]+` for review against|Slice PR body placeholder|^slice_id:|^slice_packet:' "$visible_body"; then
     add_failure "body.generic_packet_prose" "body_file" \
       "Rendered body describes packet mechanics instead of the reviewer-visible change." \
       "Rewrite Summary, What Changed, and Why It Matters in strict plain English that names the actual change and preserves technical evidence below."
@@ -409,7 +440,7 @@ validate_body_file() {
       "Remove template comments and keep only editable-boundary comments plus the legacy packet-source marker."
   fi
 
-  if ! grep -Fq "Traceability:" "$body_abs"; then
+  if ! grep -Fq "Traceability:" "$visible_body"; then
     add_failure "body.traceability" "body_file" \
       "Rendered body is missing traceability evidence." \
       "Render a Traceability line that maps source evidence, verification, and scope to the packet."
@@ -421,10 +452,16 @@ validate_body_file() {
     "<!-- speckit-pro-editable:what_changed:start -->" \
     "<!-- speckit-pro-editable:what_changed:end -->" \
     "<!-- speckit-pro-editable:why_it_matters:start -->" \
-    "<!-- speckit-pro-editable:why_it_matters:end -->" \
-    "## UAT Runbook" \
-    "Source:"; do
-    if ! grep -Fq "$marker" "$body_abs"; then
+    "<!-- speckit-pro-editable:why_it_matters:end -->"; do
+      if ! grep -Fq "$marker" "$body_abs"; then
+        add_failure "body.required_content" "body_file" \
+        "Rendered body is missing required content: $marker" \
+        "Regenerate the body with canonical sections, editable markers, UAT compatibility, and source evidence."
+    fi
+  done
+
+  for marker in "## UAT Runbook" "Source:"; do
+    if ! grep -Fq "$marker" "$visible_body"; then
       add_failure "body.required_content" "body_file" \
         "Rendered body is missing required content: $marker" \
         "Regenerate the body with canonical sections, editable markers, UAT compatibility, and source evidence."

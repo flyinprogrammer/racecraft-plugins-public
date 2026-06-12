@@ -263,6 +263,13 @@ assert_failure_rule() {
     "failure JSON should include rule $rule_id"
 }
 
+assert_no_failure_rule() {
+  local rule_id="$1"
+  assert_json_file_check "$LAST_STDOUT" \
+    "not any(f.get('rule') == '$rule_id' for f in data['failures'])" \
+    "failure JSON should not include rule $rule_id"
+}
+
 section "script presence"
 
 set_test "validate-pr-packet.sh exists"
@@ -615,6 +622,90 @@ set_test "invalid body content reports traceability rule"
 assert_failure_rule "body.traceability"
 
 set_test "invalid body content makes no PR creation attempts"
+assert_no_pr_create_attempts
+
+hidden_evidence_rel="$PACKET_FIXTURE_REL/invalid-hidden-evidence.json"
+hidden_evidence_body_rel="$PACKET_FIXTURE_REL/bodies/invalid-hidden-evidence.md"
+hidden_evidence_json="$TEST_REPO/$hidden_evidence_rel"
+hidden_evidence_body="$TEST_REPO/$hidden_evidence_body_rel"
+mkdir -p "$(dirname "$hidden_evidence_body")"
+cat > "$hidden_evidence_body" <<'EOF'
+<!-- speckit-pro-review-packet-source: tests/speckit-pro/layer4-scripts/fixtures/pr-packet/invalid-hidden-evidence.json -->
+
+## Summary
+
+<!-- speckit-pro-editable:summary:start -->
+Adds reviewer-facing packet validation.
+<!-- speckit-pro-editable:summary:end -->
+
+```md
+## Summary
+Source: hidden inside fenced code.
+Traceability: hidden inside fenced code.
+```
+
+## What Changed
+
+<!-- speckit-pro-editable:what_changed:start -->
+- Validates only reviewer-visible evidence.
+<!-- speckit-pro-editable:what_changed:end -->
+
+## Why It Matters
+
+<!-- speckit-pro-editable:why_it_matters:start -->
+Reviewers can scan the rendered body without hidden evidence satisfying the contract.
+<!-- speckit-pro-editable:why_it_matters:end -->
+
+## How To Review
+
+Inspect the visible body content.
+
+## How To UAT
+
+Run the packet validator fixture.
+
+## UAT Runbook
+
+Manual UAT is not required for this fixture.
+
+## Verification
+
+- Focused packet validation fixture.
+
+## Scope
+
+- Reviewable LOC: fixture-only evidence.
+
+## Known Gaps
+
+No known gaps.
+EOF
+jq \
+  --arg packet_id "invalid-hidden-evidence" \
+  --arg body "$hidden_evidence_body_rel" \
+  --arg result "$(validation_result_rel invalid-hidden-evidence)" \
+  '.packet_id = $packet_id | .body_file = $body | .validation_result_path = $result' \
+  "$TEST_REPO/$PACKET_FIXTURE_REL/valid-single.json" > "$hidden_evidence_json"
+
+hidden_evidence_result="$(validation_result_rel invalid-hidden-evidence)"
+reset_gh_capture
+run_validator_capture "invalid-hidden-evidence" "$hidden_evidence_rel"
+
+set_test "invalid hidden evidence exits 1"
+assert_captured_exit "1"
+
+assert_failure_json "invalid-hidden-evidence" "validation_failure" "1" "$hidden_evidence_result"
+
+set_test "hidden fenced traceability does not satisfy rendered evidence"
+assert_failure_rule "body.traceability"
+
+set_test "hidden fenced source does not satisfy rendered evidence"
+assert_failure_rule "body.required_content"
+
+set_test "fenced headings do not affect canonical heading order"
+assert_no_failure_rule "body.heading_order"
+
+set_test "invalid hidden evidence makes no PR creation attempts"
 assert_no_pr_create_attempts
 
 generic_body_rel="$PACKET_FIXTURE_REL/invalid-generic-body.json"
