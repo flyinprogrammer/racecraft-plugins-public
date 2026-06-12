@@ -488,6 +488,33 @@ assert_failure_rule "title.public_description"
 set_test "invalid generic title makes no PR creation attempts"
 assert_no_pr_create_attempts
 
+git_ref_title_rel="$PACKET_FIXTURE_REL/invalid-git-ref-title.json"
+jq \
+  --arg packet_id "invalid-git-ref-title" \
+  --arg title "feat(PRSG-012): Update refs/heads/internal-branch packet title" \
+  --arg description "Update refs/heads/internal-branch packet title" \
+  --arg result "$(validation_result_rel invalid-git-ref-title)" \
+  '.packet_id = $packet_id
+    | .generated_title.value = $title
+    | .generated_title.description = $description
+    | .validation_result_path = $result' \
+  "$TEST_REPO/$PACKET_FIXTURE_REL/valid-single.json" > "$TEST_REPO/$git_ref_title_rel"
+
+git_ref_title_result="$(validation_result_rel invalid-git-ref-title)"
+reset_gh_capture
+run_validator_capture "invalid-git-ref-title" "$git_ref_title_rel"
+
+set_test "invalid git ref title exits 1"
+assert_captured_exit "1"
+
+assert_failure_json "invalid-git-ref-title" "validation_failure" "1" "$git_ref_title_result"
+
+set_test "invalid git ref title reports banned public text"
+assert_failure_rule "text.banned_or_placeholder"
+
+set_test "invalid git ref title makes no PR creation attempts"
+assert_no_pr_create_attempts
+
 invalid_missing_result="$(validation_result_rel invalid-missing-evidence)"
 reset_gh_capture
 run_validator_capture "invalid-missing-evidence" "$PACKET_FIXTURE_REL/invalid-missing-evidence.json"

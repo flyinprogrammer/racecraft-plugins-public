@@ -231,7 +231,7 @@ require_jq_true() {
 
 contains_banned_text() {
   local value="$1"
-  [[ "$value" =~ (ELI5|Plain-English[[:space:]]Summary|TODO|PRSG-[0-9]+|SPEC-[0-9A-Za-z_-]+|FR-[0-9A-Za-z_-]+|SC-[0-9A-Za-z_-]+|L[0-9]+|\{\{|\}\}|\$\{|<!--[[:space:]]*[^>]*-->|Example:) ]]
+  [[ "$value" =~ (ELI5|Plain-English[[:space:]]Summary|TODO|refs/heads/|refs/remotes/|refs/tags/|PRSG-[0-9]+|SPEC-[0-9A-Za-z_-]+|FR-[0-9A-Za-z_-]+|SC-[0-9A-Za-z_-]+|L[0-9]+|\{\{|\}\}|\$\{|<!--[[:space:]]*[^>]*-->|Example:) ]]
 }
 
 contains_generic_title_text() {
@@ -268,13 +268,18 @@ protected_body_sha() {
       if (line == "## Known Gaps") seen_known_gaps=1
       else if (seen_known_gaps && line != "") known_gaps_body_seen=1
     }
-  ' "$path" | {
-    if command -v shasum >/dev/null 2>&1; then
-      shasum -a 256 | awk '{print $1}'
-    else
-      awk '{printf "%064d\n", 0}'
-    fi
-  }
+  ' "$path" | sha256_from_stdin
+}
+
+sha256_from_stdin() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 | awk '{print $1}'
+  else
+    printf '%s\n' "sha256sum or shasum is required for packet body fingerprinting" >&2
+    return 2
+  fi
 }
 
 validate_required_headings() {
