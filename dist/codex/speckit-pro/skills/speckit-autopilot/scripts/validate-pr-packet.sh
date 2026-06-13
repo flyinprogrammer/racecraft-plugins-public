@@ -70,16 +70,16 @@ packet_id_from_path() {
 }
 
 derive_validation_result_path() {
-  local packet="$1" packet_id="$2" configured source_feature_dir
+  local packet="$1" packet_id="$2" configured source_feature_dir derived
   configured="$(jq_get "$packet" '.validation_result_path')"
-  if [[ "$configured" == specs/*/.process/pr-packets/*/validation.json ]]; then
-    printf '%s\n' "$configured"
-    return
-  fi
-
   source_feature_dir="$(jq_get "$packet" '.source_feature_dir')"
   if [[ "$source_feature_dir" == specs/* ]] && [ -n "$packet_id" ]; then
-    printf '%s/.process/pr-packets/%s/validation.json\n' "$source_feature_dir" "$packet_id"
+    derived="$source_feature_dir/.process/pr-packets/$packet_id/validation.json"
+    if [ -n "$configured" ] && [ "$configured" != "$derived" ]; then
+      printf '%s\n' "no-path"
+      return
+    fi
+    printf '%s\n' "$derived"
     return
   fi
 
@@ -453,8 +453,8 @@ validate_body_file() {
     "<!-- speckit-pro-editable:what_changed:end -->" \
     "<!-- speckit-pro-editable:why_it_matters:start -->" \
     "<!-- speckit-pro-editable:why_it_matters:end -->"; do
-      if ! grep -Fq "$marker" "$body_abs"; then
-        add_failure "body.required_content" "body_file" \
+    if ! grep -Fq "$marker" "$body_abs"; then
+      add_failure "body.required_content" "body_file" \
         "Rendered body is missing required content: $marker" \
         "Regenerate the body with canonical sections, editable markers, UAT compatibility, and source evidence."
     fi

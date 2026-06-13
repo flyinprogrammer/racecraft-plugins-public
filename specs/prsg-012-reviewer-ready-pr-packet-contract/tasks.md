@@ -83,19 +83,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T025 [US3] Add input-error fixture arguments for missing, unreadable, directory-valued, invalid-JSON, schema-invalid, and no-feature-dir packet inputs in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/invalid-missing-packet.args`
-- [ ] T026 [US3] Add split partial-failure resume fixture in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/split-partial-failure-state.json`
-- [ ] T027 [US3] Assert deterministic validation JSON, stdout `input_error` envelopes with `no-path` when no feature directory can be derived, stderr lines, exit codes, zero `gh pr create` attempts, deterministic workflow event ids, and workflow event supersede behavior in `tests/speckit-pro/layer4-scripts/test-validate-pr-packet.sh`
-- [ ] T028 [US3] Assert split PR emission validates before each slice PR, blocks invalid packets, preserves prior PR evidence, ignores stale failed validation records as authorization, and does not duplicate earlier PRs in `tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh`
+- [x] T025 [US3] Add input-error fixture arguments for missing, unreadable, directory-valued, invalid-JSON, schema-invalid, and no-feature-dir packet inputs in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/invalid-missing-packet.args`
+- [x] T026 [US3] Add split partial-failure resume fixture in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/split-partial-failure-state.json`
+- [x] T027 [US3] Assert deterministic validation JSON, stdout `input_error` envelopes with `no-path` when no feature directory can be derived, stderr lines, exit codes, zero `gh pr create` attempts, deterministic workflow event ids, and workflow event supersede behavior in `tests/speckit-pro/layer4-scripts/test-validate-pr-packet.sh`
+- [x] T028 [US3] Assert split PR emission validates before each slice PR, blocks invalid packets, preserves prior PR evidence, ignores stale failed validation records as authorization, and does not duplicate earlier PRs in `tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh`
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Write validation results under `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/pr-packets/<packet_id>/validation.json` from `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`, or emit the same `input_error` JSON envelope to stdout with `validation_result_path: "no-path"` when no target feature directory can be derived
-- [ ] T030 [US3] Emit deterministic failed-run stderr lines and distinguish `validation_failure` exit `1` from `input_error` exit `2`, including the `validation_result_path_or_no-path` field, in `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`
-- [ ] T031 [US3] Append or supersede blocking workflow events with deterministic event ids in `docs/ai/specs/.process/PRSG-012-workflow.md` from `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`
-- [ ] T032 [US3] Invoke `validate-pr-packet.sh` before each split `gh pr create --base --head --title --body-file` call in `speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh`
-- [ ] T033 [US3] Preserve `.process/prs.json`, Spec MOC PRS table, workflow evidence, and `autopilot-state.json` references during split partial failure handling, then reconcile existing PR records before retry so corrected packets cannot duplicate earlier PRs, in `speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh`
-- [ ] T034 [US3] Update single-PR post-implementation guidance to require current packet validation before `gh pr create --base --head --title --body-file` and to use only newly passed validation results in `speckit-pro/skills/speckit-autopilot/references/post-implementation.md`
+- [x] T029 [US3] Write validation results under `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/pr-packets/<packet_id>/validation.json` from `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`, or emit the same `input_error` JSON envelope to stdout with `validation_result_path: "no-path"` when no target feature directory can be derived
+- [x] T030 [US3] Emit deterministic failed-run stderr lines and distinguish `validation_failure` exit `1` from `input_error` exit `2`, including the `validation_result_path_or_no-path` field, in `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`
+- [x] T031 [US3] Append or supersede blocking workflow events with deterministic event ids in `docs/ai/specs/.process/PRSG-012-workflow.md` from `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`
+- [x] T032 [US3] Invoke `validate-pr-packet.sh` before each split `gh pr create --base --head --title --body-file` call in `speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh`
+- [x] T033 [US3] Preserve `.process/prs.json`, Spec MOC PRS table, workflow evidence, and `autopilot-state.json` references during split partial failure handling, then reconcile existing PR records before retry so corrected packets cannot duplicate earlier PRs, in `speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh`
+- [x] T034 [US3] Update single-PR post-implementation guidance to require current packet validation before `gh pr create --base --head --title --body-file` and to use only newly passed validation results in `speckit-pro/skills/speckit-autopilot/references/post-implementation.md`
 
 **Checkpoint**: US3 is complete when all invalid packets block before PR creation and valid packets are the only path to `gh pr create --base --head --title --body-file`.
 

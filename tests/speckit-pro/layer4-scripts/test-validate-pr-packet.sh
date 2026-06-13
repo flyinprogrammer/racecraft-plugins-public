@@ -28,7 +28,10 @@ cat > "$TEST_REPO/docs/ai/specs/.process/PRSG-012-workflow.md" <<'EOF'
 ## Phase 7: Implement
 EOF
 printf '{}\n' > "$TEST_REPO/$PACKET_FIXTURE_REL/unreadable-packet.json"
-chmod 000 "$TEST_REPO/$PACKET_FIXTURE_REL/unreadable-packet.json" 2>/dev/null || true
+chmod 000 "$TEST_REPO/$PACKET_FIXTURE_REL/unreadable-packet.json" 2>/dev/null || {
+  printf 'test setup failed: unable to make unreadable packet fixture\n' >&2
+  exit 1
+}
 
 cat > "$FAKE_BIN/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -814,6 +817,27 @@ assert_captured_stderr_contains "no-path" "no-feature-dir no-path"
 assert_failure_json "invalid-no-feature-dir" "input_error" "2" "$invalid_no_feature_result"
 
 set_test "invalid no-feature-dir makes no PR creation attempts"
+assert_no_pr_create_attempts
+
+mismatched_result_rel="$PACKET_FIXTURE_REL/invalid-mismatched-result-path.json"
+jq \
+  --arg packet_id "invalid-mismatched-result-path" \
+  --arg result "$FEATURE_DIR_REL/.process/pr-packets/other-packet/validation.json" \
+  '.packet_id = $packet_id | .validation_result_path = $result' \
+  "$TEST_REPO/$PACKET_FIXTURE_REL/valid-single.json" > "$TEST_REPO/$mismatched_result_rel"
+
+reset_gh_capture
+run_validator_capture "invalid-mismatched-result-path" "$mismatched_result_rel"
+
+set_test "mismatched validation result path exits 2"
+assert_captured_exit "2"
+
+set_test "mismatched validation result path stderr records no-path"
+assert_captured_stderr_contains "no-path" "mismatched result no-path"
+
+assert_failure_json "invalid-mismatched-result-path" "input_error" "2" "no-path"
+
+set_test "mismatched validation result path makes no PR creation attempts"
 assert_no_pr_create_attempts
 
 schema_invalid_result="$(validation_result_rel invalid-schema-with-feature-dir)"
