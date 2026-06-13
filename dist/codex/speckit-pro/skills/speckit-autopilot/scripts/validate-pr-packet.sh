@@ -422,18 +422,20 @@ validate_body_file() {
     {
       line=$0
       sub(/[ \t\r]+$/, "", line)
+      trimmed=line
+      sub(/^[ \t]+/, "", trimmed)
       if (legacy) {
-        if (line == "-->") legacy=0
+        if (trimmed == "-->") legacy=0
         next
       }
-      if (line ~ /^<!-- speckit-pro-review-packet-source/) {
-        if (line !~ /-->$/) legacy=1
+      if (trimmed ~ /^<!--[[:space:]]*speckit-pro-review-packet-source/) {
+        if (trimmed !~ /-->$/) legacy=1
         next
       }
       if (line ~ /^<!-- speckit-pro-editable:(summary|what_changed|why_it_matters):(start|end) -->$/) next
       if (line ~ /<!--/) { bad=1; exit }
     }
-    END { exit bad ? 0 : 1 }
+    END { if (legacy) bad=1; exit bad ? 0 : 1 }
   ' "$body_abs"; then
     add_failure "body.unknown_comment" "body_file" \
       "Rendered body contains an unknown or stale HTML comment outside allowed packet markers." \

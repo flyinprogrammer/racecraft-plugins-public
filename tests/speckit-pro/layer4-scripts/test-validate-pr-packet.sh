@@ -396,6 +396,21 @@ run_validator_capture "valid-host-coexist" "$host_coexist_rel"
 set_test "host template content outside canonical packet block exits 0"
 assert_captured_exit "0"
 
+indented_source_rel="$PACKET_FIXTURE_REL/valid-indented-source-marker.json"
+indented_source_body_rel="$PACKET_FIXTURE_REL/bodies/valid-indented-source-marker.md"
+sed '1s/^/  /' "$TEST_REPO/$valid_edited_body_rel" > "$TEST_REPO/$indented_source_body_rel"
+jq \
+  --arg packet_id "valid-indented-source-marker" \
+  --arg body "$indented_source_body_rel" \
+  --arg result "$(validation_result_rel valid-indented-source-marker)" \
+  '.packet_id = $packet_id | .body_file = $body | .validation_result_path = $result' \
+  "$TEST_REPO/$PACKET_FIXTURE_REL/valid-single.json" > "$TEST_REPO/$indented_source_rel"
+
+run_validator_capture "valid-indented-source-marker" "$indented_source_rel"
+
+set_test "indented legacy packet source marker exits 0"
+assert_captured_exit "0"
+
 invalid_protected_result="$(validation_result_rel invalid-protected-edit)"
 reset_gh_capture
 run_validator_capture "invalid-protected-edit" "$PACKET_FIXTURE_REL/invalid-protected-edit.json"
@@ -446,6 +461,28 @@ set_test "invalid unknown comment exits 1"
 assert_captured_exit "1"
 
 set_test "invalid unknown comment reports comment rule"
+assert_failure_rule "body.unknown_comment"
+
+unterminated_source_rel="$PACKET_FIXTURE_REL/invalid-unterminated-source-marker.json"
+unterminated_source_body_rel="$PACKET_FIXTURE_REL/bodies/invalid-unterminated-source-marker.md"
+{
+  printf '%s\n' '<!-- speckit-pro-review-packet-source'
+  tail -n +2 "$TEST_REPO/$valid_edited_body_rel"
+} > "$TEST_REPO/$unterminated_source_body_rel"
+jq \
+  --arg packet_id "invalid-unterminated-source-marker" \
+  --arg body "$unterminated_source_body_rel" \
+  --arg result "$(validation_result_rel invalid-unterminated-source-marker)" \
+  '.packet_id = $packet_id | .body_file = $body | .validation_result_path = $result' \
+  "$TEST_REPO/$PACKET_FIXTURE_REL/valid-single.json" > "$TEST_REPO/$unterminated_source_rel"
+
+reset_gh_capture
+run_validator_capture "invalid-unterminated-source-marker" "$unterminated_source_rel"
+
+set_test "unterminated legacy packet source marker exits 1"
+assert_captured_exit "1"
+
+set_test "unterminated legacy packet source marker reports comment rule"
 assert_failure_rule "body.unknown_comment"
 
 section "rendered-content validation failures"

@@ -41,7 +41,7 @@
 ### Tests for User Story 1
 
 - [x] T010 [US1] Extend title fixtures for branch/spec/slice-token rejection and explicit metadata-only type/scope override validation in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/invalid-title-token.json`
-- [x] T011 [US1] Assert single-PR generated title metadata defaults to `feat(speckit-pro):` in `tests/speckit-pro/layer4-scripts/test-generate-pr-body.sh`
+- [x] T011 [US1] Assert single-PR generated title metadata derives the active spec scope, with plugin-scope fallback only for non-spec packets, in `tests/speckit-pro/layer4-scripts/test-generate-pr-body.sh`
 - [x] T012 [US1] Assert split-PR `gh pr create` calls include packet target values through `--base`/`--head`, packet title values through `--title`, and rendered body files through `--body-file` in `tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh`
 
 ### Implementation for User Story 1
@@ -107,16 +107,16 @@
 
 ### Tests for User Story 4
 
-- [ ] T035 [US4] Add sanctioned prose edit fixture coverage in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/bodies/valid-single-edited.md`
-- [ ] T036 [US4] Add protected edit rejection fixture in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/invalid-protected-edit.json`
-- [ ] T037 [US4] Assert editable boundary comments, protected fingerprint elision, unknown comment rejection, stale template comment rejection, and host template coexistence outside the protected canonical packet block in `tests/speckit-pro/layer4-scripts/test-validate-pr-packet.sh`
+- [x] T035 [US4] Add sanctioned prose edit fixture coverage in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/bodies/valid-single-edited.md`
+- [x] T036 [US4] Add protected edit rejection fixture in `tests/speckit-pro/layer4-scripts/fixtures/pr-packet/invalid-protected-edit.json`
+- [x] T037 [US4] Assert editable boundary comments, protected fingerprint elision, unknown comment rejection, stale template comment rejection, and host template coexistence outside the protected canonical packet block in `tests/speckit-pro/layer4-scripts/test-validate-pr-packet.sh`
 
 ### Implementation for User Story 4
 
-- [ ] T038 [US4] Render exact full-line editable marker pairs for `summary`, `what_changed`, and `why_it_matters` in `speckit-pro/skills/speckit-autopilot/scripts/generate-pr-body.sh`
-- [ ] T039 [US4] Store editable field metadata and protected body fingerprints with editable blocks elided in `speckit-pro/skills/speckit-autopilot/scripts/generate-pr-body.sh`
-- [ ] T040 [US4] Reject protected body changes, malformed editable boundaries, unknown HTML comments, stale template comments, and host template interference in `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`
-- [ ] T041 [US4] Document sanctioned editable fields and protected governance limits in `speckit-pro/skills/speckit-autopilot/references/post-implementation.md`
+- [x] T038 [US4] Render exact full-line editable marker pairs for `summary`, `what_changed`, and `why_it_matters` in `speckit-pro/skills/speckit-autopilot/scripts/generate-pr-body.sh`
+- [x] T039 [US4] Store editable field metadata and protected body fingerprints with editable blocks elided in `speckit-pro/skills/speckit-autopilot/scripts/generate-pr-body.sh`
+- [x] T040 [US4] Reject protected body changes, malformed editable boundaries, unknown HTML comments, stale template comments, and host template interference in `speckit-pro/skills/speckit-autopilot/scripts/validate-pr-packet.sh`
+- [x] T041 [US4] Document sanctioned editable fields and protected governance limits in `speckit-pro/skills/speckit-autopilot/references/post-implementation.md`
 
 **Checkpoint**: US4 is complete when sanctioned prose edits pass and protected evidence edits fail with deterministic remediation evidence.
 
@@ -124,21 +124,21 @@
 
 **Purpose**: Update higher-layer evidence and mirrored guidance after the runtime and Layer 4 contract pass.
 
-- [ ] T042 [P] Update Claude Code Layer 3 functional eval expectations for generated title/body, explicit `--base --head --title --body-file`, pre-create validation, and no post-create repair fallback in `tests/speckit-pro/layer3-functional/evals/speckit-autopilot-evals.json`
-- [ ] T043 [P] Update Codex Layer 3 functional eval expectations for generated title/body, explicit `--base --head --title --body-file`, pre-create validation, and no post-create repair fallback in `tests/speckit-pro/layer3-functional/codex-evals/speckit-autopilot-evals.json`
-- [ ] T044 Update Layer 7 replay fixture ordering for split PR packet validation before each slice PR in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/prompt.txt`
-- [ ] T045 Update Layer 7 replay expected packet validation evidence in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/expected.json`
-- [ ] T046 [P] Update Layer 7 replay documentation for reviewer-ready packet validation in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/README.md`
-- [ ] T047 Update Layer 7 parser fixture evidence for packet validation before PR creation in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/parser-fixture.jsonl`
-- [ ] T048 Update Layer 8 parity workflow expectations for mirrored autopilot guidance, explicit PR target/title/body arguments, and pre-create validation ordering in `tests/speckit-pro/layer8-parity/01-post-impl-parity/workflow.md`
-- [ ] T049 Update Layer 8 parity expected equivalence for shared schema and validator references, no duplicate Codex validator/schema copies, and no post-create repair fallback in `tests/speckit-pro/layer8-parity/01-post-impl-parity/expected-equivalence.json`
-- [ ] T050 [P] Update Layer 8 parity documentation and tolerance notes in `tests/speckit-pro/layer8-parity/01-post-impl-parity/README.md` and `tests/speckit-pro/layer8-parity/01-post-impl-parity/tolerance.json`
-- [ ] T051 Update primary autopilot guidance for packet generation, validation, and PR creation behavior in `speckit-pro/skills/speckit-autopilot/SKILL.md`
-- [ ] T052 Update Codex mirrored autopilot guidance without duplicating schema or validator copies in `speckit-pro/codex-skills/speckit-autopilot/SKILL.md`
-- [ ] T053 Update Codex post-implementation reference for packet validation parity in `speckit-pro/codex-skills/speckit-autopilot/references/post-implementation-codex.md`
-- [ ] T054 Run structural validation through `bash tests/speckit-pro/run-all.sh --layer 1` using `tests/speckit-pro/run-all.sh`
-- [ ] T055 Run Layer 4 script validation through `bash tests/speckit-pro/run-all.sh --layer 4` using `tests/speckit-pro/run-all.sh`
-- [ ] T056 Run default deterministic verification through `bash tests/speckit-pro/run-all.sh` using `tests/speckit-pro/run-all.sh`
+- [x] T042 [P] Update Claude Code Layer 3 functional eval expectations for generated title/body, explicit `--base --head --title --body-file`, pre-create validation, and no post-create repair fallback in `tests/speckit-pro/layer3-functional/evals/speckit-autopilot-evals.json`
+- [x] T043 [P] Update Codex Layer 3 functional eval expectations for generated title/body, explicit `--base --head --title --body-file`, pre-create validation, and no post-create repair fallback in `tests/speckit-pro/layer3-functional/codex-evals/speckit-autopilot-evals.json`
+- [x] T044 Update Layer 7 replay fixture ordering for split PR packet validation before each slice PR in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/prompt.txt`
+- [x] T045 Update Layer 7 replay expected packet validation evidence in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/expected.json`
+- [x] T046 [P] Update Layer 7 replay documentation for reviewer-ready packet validation in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/README.md`
+- [x] T047 Update Layer 7 parser fixture evidence for packet validation before PR creation in `tests/speckit-pro/layer7-integration/dispatch-fixtures/18-post-impl-parallel-subagents/parser-fixture.jsonl`
+- [x] T048 Update Layer 8 parity workflow expectations for mirrored autopilot guidance, explicit PR target/title/body arguments, and pre-create validation ordering in `tests/speckit-pro/layer8-parity/01-post-impl-parity/workflow.md`
+- [x] T049 Update Layer 8 parity expected equivalence for shared schema and validator references, no duplicate Codex validator/schema copies, and no post-create repair fallback in `tests/speckit-pro/layer8-parity/01-post-impl-parity/expected-equivalence.json`
+- [x] T050 [P] Update Layer 8 parity documentation and tolerance notes in `tests/speckit-pro/layer8-parity/01-post-impl-parity/README.md` and `tests/speckit-pro/layer8-parity/01-post-impl-parity/tolerance.json`
+- [x] T051 Update primary autopilot guidance for packet generation, validation, and PR creation behavior in `speckit-pro/skills/speckit-autopilot/SKILL.md`
+- [x] T052 Update Codex mirrored autopilot guidance without duplicating schema or validator copies in `speckit-pro/codex-skills/speckit-autopilot/SKILL.md`
+- [x] T053 Update Codex post-implementation reference for packet validation parity in `speckit-pro/codex-skills/speckit-autopilot/references/post-implementation-codex.md`
+- [x] T054 Run structural validation through `bash tests/speckit-pro/run-all.sh --layer 1` using `tests/speckit-pro/run-all.sh`
+- [x] T055 Run Layer 4 script validation through `bash tests/speckit-pro/run-all.sh --layer 4` using `tests/speckit-pro/run-all.sh`
+- [x] T056 Run default deterministic verification through `bash tests/speckit-pro/run-all.sh` using `tests/speckit-pro/run-all.sh`
 
 **Checkpoint**: Polish is complete when Layer 3, Layer 7, Layer 8, primary guidance, Codex guidance, and deterministic verification all reflect the same packet contract.
 

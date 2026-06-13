@@ -37,7 +37,7 @@ The design concept is the source of truth for these scoping decisions:
 | Checklist | `/speckit-checklist` | Complete | API contracts, error handling, and reliability checklists complete; G4 passed |
 | Tasks | `/speckit-tasks` | Complete | Generated 56 tasks across Foundation, US1-US4, and Polish; G5 passed |
 | Analyze | `/speckit-analyze` | Complete | 5 findings remediated in `tasks.md`; marker counter clean; G6 passed |
-| Implement | `/speckit-implement` | In Progress | Phase 7 US4 safe refinement active after completing Foundation, US1, US2, and US3 |
+| Implement | `/speckit-implement` | Complete | Foundation, US1-US4, Polish evidence, and deterministic verification complete |
 
 ### Phase Gates
 
@@ -442,7 +442,7 @@ Focus on:
 | Status | soft-skip |
 | Reason | No synthesizer confidence emit found |
 | Threshold | 0.90 |
-| Action | Continue to Phase 7 |
+| Action | Continue to Post-Implementation |
 
 ---
 
@@ -491,22 +491,47 @@ For every deterministic behavior:
 | User Story 1 | T010-T017 | 8/8 | Generated and validated packet-owned single/split PR titles |
 | User Story 2 | T018-T024 | 7/7 | Reviewer body evidence, UAT compatibility, traceability, source/scope/verification checks, and stale body text validation complete |
 | User Story 3 | T025-T034 | 10/10 | Packet validation result paths, no-path input errors, workflow events, and split PR pre-create validation gate complete |
-| User Story 4 | T035-T041 | 0/7 | In progress |
-| Polish | | | |
+| User Story 4 | T035-T041 | 7/7 | Safe prose refinement markers, protected fingerprints, comment rejection, and guidance complete |
+| Polish | T042-T056 | 15/15 | L3 evals, L7 replay fixture, L8 parity fixture, primary guidance, Codex mirror guidance, Codex post-implementation reference, and deterministic verification complete |
 
 ---
 
 ## Post-Implementation Checklist
 
-- [ ] `bash tests/speckit-pro/run-all.sh --layer 4` passes.
-- [ ] `bash tests/speckit-pro/run-all.sh --layer 1` passes if mirrored docs or contracts changed.
-- [ ] L3 functional eval evidence is recorded.
-- [ ] L7 replay evidence is recorded when split-PR dispatch behavior changes.
-- [ ] L8 Codex parity evidence is recorded.
-- [ ] Generated PR body contains required canonical sections and the `## UAT Runbook` compatibility heading.
-- [ ] Every PR creation path uses `gh pr create --base --head --title --body-file`.
-- [ ] Invalid packet fixture blocks before PR creation and writes JSON remediation evidence.
-- [ ] PR title is conventional and public-readable.
+- [x] `bash tests/speckit-pro/run-all.sh --layer 4` passes.
+- [x] `bash tests/speckit-pro/run-all.sh --layer 1` passes if mirrored docs or contracts changed.
+- [x] L3 functional eval evidence is recorded.
+- [x] L7 replay evidence is recorded when split-PR dispatch behavior changes.
+- [x] L8 Codex parity evidence is recorded.
+- [x] Generated PR body contains required canonical sections and the `## UAT Runbook` compatibility heading.
+- [x] Every PR creation path uses `gh pr create --base --head --title --body-file`.
+- [x] Invalid packet fixture blocks before PR creation and writes JSON remediation evidence.
+- [x] PR title is conventional and public-readable.
+
+### Post-Implementation Status
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| Doctor Extension Check | Skipped | Codex command not installed: `.codex/commands` is absent; command exists only under `.claude/commands/speckit.speckit-utils.doctor.md`. |
+| Verify Implementation | Skipped | Codex command not installed: `.codex/commands` is absent; command exists only under `.claude/commands/speckit.verify.md` / `.claude/commands/speckit.verify.run.md`. |
+| Verify Tasks Phantom Check | Skipped | Codex command not installed: `.codex/commands` is absent; command exists only under `.claude/commands/speckit.verify-tasks.md` / `.claude/commands/speckit.verify-tasks.run.md`. |
+| Code Review | Skipped | Review extension command is not installed for the Codex runtime. |
+| Integration Suite | Complete | `bash tests/speckit-pro/run-all.sh` passed: 2790/2790 checks. |
+| Cleanup | Skipped | Cleanup extension command is not installed for the Codex runtime. |
+| Reviewability Diff Gate | Complete | Final reviewability backstop returned `outcome=marker_split`; full diff remains size-blocked, but the current marker plan is valid, fingerprint-matched, and emission-ready. Evidence: `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/final-reviewability/gate-state.json` and `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/marker-plan/final-marker-split-result.json`. |
+| Self-Review | Complete | Four-question audit recorded below; no follow-up gaps found. |
+| UAT Runbook Generation | Complete | Skeleton generated at `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/uat-runbook.md`; `uat-runbook-author` is not installed in this Codex runtime, so the deterministic skeleton is retained fail-open. |
+| PR Body Generation | Complete | Live marker emission generated 5 slice PR bodies under `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/emission/<slice>/pr-body.md`; each body contains the `speckit-pro-review-packet-source` marker and `## UAT Runbook` heading. |
+| PR Creation | Complete | Live marker emission opened stacked PRs #164-#168 and persisted `specs/prsg-012-reviewer-ready-pr-packet-contract/.process/prs.json`, `SPEC-MOC.md`, and `docs/ai/specs/.process/autopilot-state.json`. |
+| Review Remediation | Complete | `gh pr view` and PR review-comment API checks found no issue comments, reviews, or inline review comments on #164-#168. Generated PR bodies and marker packets were scrubbed of local absolute paths, and PR descriptions #164-#168 were updated. Final local verification passed with `bash tests/speckit-pro/run-all.sh` at 2790/2790. PRs #164-#167 still have failing full-suite GitHub PR Checks because the repo workflow runs the complete speckit-pro suite against partial stack slices; scoped slice verification is recorded in each PR packet. PR #168, the top-of-stack PR, is green. |
+| Retrospective | Skipped | Codex command not installed: `.codex/commands` is absent; command exists only under `.claude/commands/speckit.retrospective.analyze.md`. |
+
+### Self-Review
+
+1. **Tests executed?** Applicable verification ran in this resumed session. `bash tests/speckit-pro/run-all.sh --layer 1` passed 978/978, `bash tests/speckit-pro/run-all.sh --layer 4` passed 1622/1622, and `bash tests/speckit-pro/run-all.sh` passed 2790/2790. The project command detector reports BUILD, TYPECHECK, LINT, UNIT_TEST, and INTEGRATION_TEST as `N/A` for this shell-only plugin repository, so no separate build/typecheck/lint commands were inferred as passing.
+2. **Edge cases?** Acceptance coverage is present for single and split packet title generation, stale/title-token rejection, canonical body order, UAT compatibility, missing evidence, banned labels, input-error packet paths, stale validation, split partial-failure resume, safe prose edits, protected evidence edits, and host-template coexistence. Evidence includes `tests/speckit-pro/layer4-scripts/test-generate-pr-body.sh:385`, `tests/speckit-pro/layer4-scripts/test-validate-pr-packet.sh:390`, `tests/speckit-pro/layer4-scripts/test-validate-pr-packet.sh:530`, `tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh:346`, `tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh:1141`, and `tests/speckit-pro/layer4-scripts/test-multi-pr-emission.sh:1445`.
+3. **Requirements matched?** FR-001 through FR-004A map to checked title and PR-create tasks T010-T017; FR-005 through FR-015F map to checked validator, workflow-event, stale-result, and split-resume tasks T018-T034; FR-016 through FR-018 map to checked safe-edit and protected-fingerprint tasks T035-T041; FR-019 maps to checked mirrored guidance/parity tasks T042-T053. Verification tasks T054-T056 are checked and passed.
+4. **Follow-up?** No `[TODO]`, `[DEFERRED]`, or `[OUT-OF-SCOPE]` markers were found in `spec.md`, `plan.md`, or `tasks.md`, and branch commit subjects do not contain those markers. No self-review follow-up item is required.
 
 ---
 
@@ -548,3 +573,10 @@ Template based on SpecKit best practices. Populated for PRSG-012 from the PR-siz
 | Clarify Session 2 | Conventional title prefix | 1 | codebase, spec | Accepted: generated titles render as `<type>(<scope>): <plain-English description>`; implementation packets default to `feat(speckit-pro):`; only explicit packet metadata can override type/scope, and overrides must use allowed conventional commit values. | codebase-analyst, spec-context-analyst |
 | Clarify Session 2 | Internal-code rejection | 1 | codebase, spec | Accepted: the post-colon description must be public-readable plain English and must reject any branch refs, slice IDs, PRSG/SPEC/FR/SC/L# tokens, stale placeholders, unexpanded variables, or banned labels, even when mixed with otherwise readable words. | codebase-analyst, spec-context-analyst |
 | Clarify Session 3 | Safe refinement details | skipped | none | Executor returned no unresolved consensus items. Accepted exact full-line editable marker pairs, protected-body fingerprint comparison, allowlisted structural comments, canonical packet block before host template content, and fail-before-create validation JSON for outside-field edits. | clarify-executor |
+
+### US2 emission evidence
+- Opened PR#164 for `foundation` (prsg-012-reviewer-ready-pr-packet-contract/01-foundation -> main).
+- Opened PR#165 for `us1` (prsg-012-reviewer-ready-pr-packet-contract/02-us1 -> prsg-012-reviewer-ready-pr-packet-contract/01-foundation).
+- Opened PR#166 for `us2` (prsg-012-reviewer-ready-pr-packet-contract/03-us2 -> prsg-012-reviewer-ready-pr-packet-contract/02-us1).
+- Opened PR#167 for `us3` (prsg-012-reviewer-ready-pr-packet-contract/04-us3 -> prsg-012-reviewer-ready-pr-packet-contract/03-us2).
+- Opened PR#168 for `us4` (prsg-012-reviewer-ready-pr-packet-contract/05-us4 -> prsg-012-reviewer-ready-pr-packet-contract/04-us3).
