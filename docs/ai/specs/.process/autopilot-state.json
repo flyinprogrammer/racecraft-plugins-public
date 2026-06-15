@@ -1,48 +1,549 @@
 {
-  "schemaVersion": 1,
-  "workflow_file": "docs/ai/specs/.process/PRSG-014-workflow.md",
-  "feature_dir": "specs/prsg-014-optional-gh-stack-stack-manager-integration",
-  "feature_branch": "prsg-014-optional-gh-stack-stack-manager-integration",
-  "updated_at": "2026-06-14T20:40:02Z",
-  "active_step": "Archived",
-  "status": "completed",
-  "archive_sweep": {
-    "status": "completed",
-    "archive_extension_installed": true,
-    "cleanup_mode": "post-merge-hygiene",
-    "current_target": null,
-    "excluded_current_spec": null,
-    "eligible_previous_specs": [
-      "specs/prsg-014-optional-gh-stack-stack-manager-integration"
-    ],
-    "safeToApplyCleanup": true,
-    "dryRunProvenanceOnly": false,
-    "archive_report": ".specify/memory/archive-reports/2026-06-14-prsg-014-post-merge-hygiene.md",
-    "cleanup_applied": true
+  "workflow_file": "docs/ai/specs/.process/DOC-003-workflow.md",
+  "updated_at": "2026-06-15T17:02:36Z",
+  "active_step": "Post: PR Created",
+  "spec_id": "DOC-003",
+  "feature_dir": "specs/doc-003-claude-code-marketplace-installation-path",
+  "feature_branch": "doc-003-claude-code-marketplace-installation-path",
+  "confidence_gate_mode": "advisory",
+  "project_commands": {
+    "BUILD": "N/A",
+    "TYPECHECK": "N/A",
+    "LINT": "N/A",
+    "LINT_FIX": "N/A",
+    "UNIT_TEST": "N/A",
+    "INTEGRATION_TEST": "N/A",
+    "SINGLE_FILE_TEST": "N/A",
+    "SINGLE_FILE_INTEGRATION": "N/A",
+    "FULL_VERIFY": "N/A"
   },
-  "implementation": {
-    "status": "completed",
-    "gate": "G7",
-    "gate_status": "passed",
-    "commit_sha": "03da8f3c8587d911e6adbbb8361966c80b8cc717",
-    "merged_pr": 181,
-    "merge_commit": "4b8342f42db3223db6955a1390b30949b8caea8c",
-    "completed_tasks": 71,
-    "verification": {
-      "focused_layer4": [
-        "test-detect-stack-manager: 18/18 passed",
-        "test-multi-pr-emission: 159/159 passed",
-        "test-restack: 33/33 passed"
-      ],
-      "layer1": "979/979 passed",
-      "layer4": "1768/1768 passed",
-      "layer7": "run-all fixtures passed",
-      "layer8": "12/12 passed",
-      "default_suite": "2937/2937 passed"
+  "preset_conventions": {
+    "has_presets": true,
+    "presets": [
+      "speckit-pro-reviewability"
+    ],
+    "templates": {
+      "spec": ".specify/presets/speckit-pro-reviewability/templates/spec-template.md",
+      "plan": ".specify/presets/speckit-pro-reviewability/templates/plan-template.md",
+      "tasks": ".specify/presets/speckit-pro-reviewability/templates/tasks-template.md"
     }
   },
-  "next_specs": [
-    "DOC-003",
-    "DOC-004"
+  "archive_sweep": {
+    "archive_extension_installed": true,
+    "cleanup_mode": "apply-eligible-feature-branch",
+    "current_target": "specs/doc-003-claude-code-marketplace-installation-path",
+    "excluded_current_spec": "specs/doc-003-claude-code-marketplace-installation-path",
+    "eligible_previous_specs": [],
+    "safe_to_apply_cleanup": false,
+    "note": "Local pre-flight found no active specs other than the current target. The installed specify CLI exposes extension management but not a non-interactive speckit.archive.run command surface."
+  },
+  "preflight": {
+    "check_prerequisites": {
+      "all_pass": true,
+      "branch": "doc-003-claude-code-marketplace-installation-path",
+      "is_worktree": true,
+      "on_feature_branch": false,
+      "mcp_servers": "Missing: tavily-mcp context7 RepoPrompt; agents will use built-in fallbacks."
+    },
+    "reviewability_setup_gate": {
+      "mode": "setup",
+      "status": "pass",
+      "reviewable_loc": 395,
+      "production_files": 0,
+      "total_files": 6,
+      "primary_surfaces": [
+        "docs/process"
+      ]
+    },
+    "codex_agents": {
+      "required_present": [
+        "phase-executor",
+        "clarify-executor",
+        "checklist-executor",
+        "analyze-executor",
+        "implement-executor",
+        "codebase-analyst",
+        "spec-context-analyst",
+        "domain-researcher"
+      ],
+      "optional_present": [
+        "autopilot-fast-helper"
+      ]
+    }
+  },
+  "post_extension_availability": {
+    "doctor": true,
+    "verify": true,
+    "verify_tasks": true,
+    "review": false,
+    "cleanup": false,
+    "retrospective": true
+  },
+  "phase_results": {
+    "specify": {
+      "status": "completed",
+      "gate": "G1",
+      "gate_status": "passed",
+      "functional_requirements": 14,
+      "user_stories": 5,
+      "acceptance_scenarios": 14,
+      "clarification_markers": 0,
+      "files": [
+        "specs/doc-003-claude-code-marketplace-installation-path/spec.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/checklists/requirements.md"
+      ]
+    },
+    "clarify": {
+      "status": "completed",
+      "skipped_by_gate": "G1",
+      "reason": "No [NEEDS CLARIFICATION] markers remained after Specify."
+    },
+    "plan": {
+      "status": "completed",
+      "gate": "G3",
+      "gate_status": "passed",
+      "files": [
+        "specs/doc-003-claude-code-marketplace-installation-path/plan.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/research.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/data-model.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/quickstart.md"
+      ],
+      "contracts": "omitted-no-software-interface",
+      "reviewability_estimate": {
+        "status": "pass",
+        "projected": 0,
+        "declared_files": {
+          "production": 0,
+          "new": 3,
+          "modified": 5,
+          "total_entries": 8
+        }
+      }
+    },
+    "checklist": {
+      "domains": {
+        "ux": {
+          "status": "completed",
+          "items": 14,
+          "gaps_found": 1,
+          "gaps_fixed": 1,
+          "gaps_remaining": 0,
+          "files": [
+            "specs/doc-003-claude-code-marketplace-installation-path/checklists/ux.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/spec.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/plan.md"
+          ],
+          "consensus": "not_needed"
+        },
+        "accessibility": {
+          "status": "completed",
+          "items": 13,
+          "gaps_found": 6,
+          "gaps_fixed": 6,
+          "gaps_remaining": 0,
+          "files": [
+            "specs/doc-003-claude-code-marketplace-installation-path/checklists/accessibility.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/spec.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/plan.md"
+          ],
+          "consensus": "not_needed"
+        },
+        "security": {
+          "status": "completed",
+          "items": 19,
+          "gaps_found": 4,
+          "gaps_fixed": 4,
+          "gaps_remaining": 0,
+          "files": [
+            "specs/doc-003-claude-code-marketplace-installation-path/checklists/security.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/spec.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/plan.md"
+          ],
+          "consensus": "not_needed"
+        },
+        "error-handling": {
+          "status": "completed",
+          "items": 24,
+          "gaps_found": 7,
+          "gaps_fixed": 7,
+          "gaps_remaining": 0,
+          "files": [
+            "specs/doc-003-claude-code-marketplace-installation-path/checklists/error-handling.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/spec.md",
+            "specs/doc-003-claude-code-marketplace-installation-path/plan.md"
+          ],
+          "consensus": "not_needed"
+        }
+      },
+      "gate": "G4",
+      "gate_status": "passed",
+      "total_items": 70,
+      "total_gaps_found": 18,
+      "total_gaps_fixed": 18,
+      "total_gaps_remaining": 0
+    },
+    "tasks": {
+      "status": "completed",
+      "gate": "G5",
+      "gate_status": "passed",
+      "task_count": 39,
+      "phase_count": 9,
+      "parallel_markers": 8,
+      "user_stories_covered": 5,
+      "functional_requirements_covered": "FR-001 through FR-024",
+      "success_criteria_covered": "SC-001 through SC-008",
+      "files": [
+        "specs/doc-003-claude-code-marketplace-installation-path/tasks.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/.process/reviewability/tasks-gate.json",
+        "specs/doc-003-claude-code-marketplace-installation-path/.process/reviewability/hazard-route.json"
+      ],
+      "reviewability_task_gate": {
+        "status": "block",
+        "is_size_only": true,
+        "reviewable_loc": 1560,
+        "production_files": 1,
+        "total_files": 47,
+        "primary_surfaces": [
+          "docs/process",
+          "other",
+          "seed/config"
+        ],
+        "blockers": [
+          "reviewable LOC 1560 exceeds block threshold 800",
+          "total files 47 exceeds block threshold 25"
+        ],
+        "evidence": "specs/doc-003-claude-code-marketplace-installation-path/.process/reviewability/tasks-gate.json"
+      },
+      "atomicity_route": {
+        "route": "one-navigable-PR",
+        "releasable": true,
+        "signals": [
+          "change-shape:modify-heavy"
+        ],
+        "hints": [
+          "hint:flag-system:weak"
+        ],
+        "warnings": [],
+        "evidence": "specs/doc-003-claude-code-marketplace-installation-path/.process/reviewability/hazard-route.json"
+      },
+      "marker_plan": {
+        "status": "emission_ready",
+        "marker_count": 5,
+        "marker_ids": [
+          "us1",
+          "us2",
+          "us3",
+          "us4",
+          "us5"
+        ],
+        "warning_count": 1,
+        "hazard_collapsed": false
+      },
+      "layer_plan": {
+        "status": "skipped",
+        "reason": "Atomicity route is one-navigable-PR, not split-PR."
+      }
+    },
+    "analyze": {
+      "status": "completed",
+      "gate": "G6",
+      "gate_status": "passed",
+      "findings": {
+        "total": 0,
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "fixes_applied": 0,
+      "consensus": "not_needed",
+      "sources_checked": [
+        "docs/ai/specs/.process/DOC-003-design-concept.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/spec.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/plan.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/tasks.md",
+        ".claude-plugin/marketplace.json",
+        "speckit-pro/.claude-plugin/plugin.json",
+        "speckit-pro/hooks/hooks.json",
+        "dist/claude/speckit-pro/"
+      ]
+    },
+    "confidence_gate": {
+      "status": "completed",
+      "pass": true,
+      "composite": 0.94,
+      "threshold": 0.9,
+      "mode": "advisory",
+      "recommended_action": "proceed",
+      "criteria": {
+        "task_understanding": 0.96,
+        "approach_clarity": 0.93,
+        "requirements_alignment": 0.95,
+        "risk_assessment": 0.91,
+        "completeness": 0.95
+      }
+    },
+    "implementation": {
+      "status": "completed",
+      "gate": "G7",
+      "gate_status": "passed",
+      "tasks_total": 39,
+      "tasks_completed": 39,
+      "files_changed": [
+        "docs-site/src/content/docs/install/claude-code.md",
+        "README.md",
+        "AGENTS.md",
+        "speckit-pro/README.md",
+        "specs/doc-003-claude-code-marketplace-installation-path/tasks.md",
+        "docs/ai/specs/.process/DOC-003-workflow.md",
+        "docs/ai/specs/.process/autopilot-state.json"
+      ],
+      "validation": {
+        "docs_site_validate": "passed",
+        "command": "pnpm --dir docs-site validate",
+        "notes": "docs-site dependencies were installed from the lockfile before validation because node_modules was missing."
+      },
+      "scope_checks": {
+        "runtime_generated_release_changes": false,
+        "layer1_required": false,
+        "codex_procedure_leakage": false,
+        "doc008_absorbed": false
+      }
+    },
+    "post_implementation": {
+      "doctor_extension_check": {
+        "status": "completed",
+        "result": "pass_with_known_doc_branch_caveat",
+        "templates": "6 non-empty templates present",
+        "agent_config": "Claude integration present with 9 speckit command docs",
+        "scripts": "6 executable bash scripts present",
+        "constitution": "857 words",
+        "feature_artifacts": "DOC-003 spec, plan, and tasks present"
+      },
+      "verify_implementation": {
+        "status": "completed",
+        "first_pass": "content passed; T039 process evidence missing",
+        "rerun": "passed after PR packet/body generation"
+      },
+      "verify_tasks": {
+        "status": "completed",
+        "first_pass": "T001-T038 verified; T039 missing PR packet before packet generation",
+        "rerun": "passed after PR packet/body generation"
+      },
+      "final_reviewability_backstop": {
+        "status": "completed",
+        "outcome": "single_install_pr",
+        "gate_result": "warn",
+        "reason": "DOC-003 was aligned to the DOC-004 install-instruction structure and stale marker-split candidate artifacts were removed from PR #187.",
+        "marker_plan_valid": false,
+        "fingerprint_matched": false,
+        "evidence": "specs/doc-003-claude-code-marketplace-installation-path/.process/final-reviewability/gate-state.json"
+      },
+      "pr_packet": {
+        "status": "completed",
+        "validation": "passed",
+        "title": "docs(DOC-003): add Claude Code install route",
+        "packet": "specs/doc-003-claude-code-marketplace-installation-path/.process/pr-packet/pr-packet.json",
+        "body": "specs/doc-003-claude-code-marketplace-installation-path/.process/pr-packet/pr-body.md"
+      },
+      "marker_emission": {
+        "status": "not_applicable",
+        "mode": "single_pr",
+        "route": "single_install_pr",
+        "slice_count": 1,
+        "mutation": {
+          "branches": false,
+          "pull_requests": false
+        },
+        "candidate_files": null,
+        "reason": "DOC-003 now mirrors DOC-004 as a single install-instruction PR; stale marker-split candidate artifacts were removed."
+      },
+      "pr_creation": {
+        "status": "completed",
+        "strategy": "single install-instruction PR aligned to DOC-004 structure",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/187",
+        "title": "docs(DOC-003): add Claude Code install route",
+        "head_branch": "doc-003-claude-code-marketplace-installation-path",
+        "base_branch": "main"
+      }
+    }
+  },
+  "plan": [
+    {
+      "step": "Archive Sweep: previously merged specs dry-run/apply eligibility",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 0: Prerequisites",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 1: Specify",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 2: Clarify - Terminology And Source Authority",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 2: Clarify - Terminology And Source Authority Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 2: Clarify - Lifecycle And Verification",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 2: Clarify - Lifecycle And Verification Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 2: Clarify - Trust Depth And Platform Separation",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 2: Clarify - Trust Depth And Platform Separation Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 3: Plan",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - UX",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - UX Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - Accessibility",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - Accessibility Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - Security",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - Security Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - Error Handling",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 4: Checklist - Error Handling Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 5: Tasks",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 6: Analyze",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 6: Analyze - Consensus",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 6.5: Confidence Gate",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Source Audit (T001-T006)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Scope And Reviewability Gate (T007-T008)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Install Route (T009-T013)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Namespaced Skill Verification (T014-T016)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Lifecycle And Recovery (T017-T021)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Trust Surface Inventory (T022-T026)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Terminology Consistency (T027-T030)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Cross-Links And Boundary Clarity (T031-T033)",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 7: Validation And PR Evidence (T034-T039)",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Doctor Extension Check",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Verify Implementation",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Verify Tasks Phantom Check",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Code Review",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Integration Suite",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Cleanup",
+      "status": "pending"
+    },
+    {
+      "step": "Post: Reviewability Diff Gate",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Self-Review",
+      "status": "completed"
+    },
+    {
+      "step": "Post: UAT Runbook Generation",
+      "status": "pending"
+    },
+    {
+      "step": "Post: PR Body Generation",
+      "status": "completed"
+    },
+    {
+      "step": "Post: PR Creation",
+      "status": "completed"
+    },
+    {
+      "step": "Post: Review Remediation",
+      "status": "pending"
+    },
+    {
+      "step": "Post: Retrospective",
+      "status": "pending"
+    }
   ]
 }
