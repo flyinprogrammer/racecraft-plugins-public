@@ -1,13 +1,15 @@
 {
   "schemaVersion": 1,
-  "workflow_file": null,
-  "workflow_files": [],
-  "feature_dir": "specs/doc-005-first-successful-workflow-tutorial-and-lifecycle-explainer",
-  "feature_dirs": [
-    "specs/doc-005-first-successful-workflow-tutorial-and-lifecycle-explainer"
+  "workflow_file": "docs/ai/specs/.process/DOC-006-workflow.md",
+  "workflow_files": [
+    "docs/ai/specs/.process/DOC-006-workflow.md"
   ],
-  "feature_branch": "codex/doc-005-post-merge-hygiene",
-  "updated_at": "2026-06-16T20:47:28Z",
+  "feature_dir": "specs/doc-006-safe-interactive-selector-and-validation-aids",
+  "feature_dirs": [
+    "specs/doc-006-safe-interactive-selector-and-validation-aids"
+  ],
+  "feature_branch": "codex/doc-006-post-merge-hygiene",
+  "updated_at": "2026-06-17T16:04:35Z",
   "active_step": "Archived",
   "status": "completed",
   "archive_sweep": {
@@ -17,11 +19,11 @@
     "current_target": null,
     "excluded_current_spec": null,
     "eligible_previous_specs": [
-      "specs/doc-005-first-successful-workflow-tutorial-and-lifecycle-explainer"
+      "specs/doc-006-safe-interactive-selector-and-validation-aids"
     ],
     "safeToApplyCleanup": true,
     "dryRunProvenanceOnly": false,
-    "archive_report": ".specify/memory/archive-reports/2026-06-16-doc-005-post-merge-hygiene.md",
+    "archive_report": ".specify/memory/archive-reports/2026-06-17-doc-006-post-merge-hygiene.md",
     "cleanup_applied": true
   },
   "implementation": {
@@ -30,35 +32,34 @@
     "gate_status": "passed",
     "completed_specs": [
       {
-        "spec_id": "DOC-005",
+        "spec_id": "DOC-006",
         "merged_prs": [
-          198,
-          199,
-          200,
-          201
+          203
         ],
         "merge_commits": [
-          "238bd36921787588f52d5f0f24bd3a0d7b485d66",
-          "d6143d8fdf142f277b525a8fb759ee8b10faa44e",
-          "f03e352d5cc143d104c9b8f977266496fa869fd4",
-          "0f0eff05f80130d4c61cc91c2633f2b73ad88151"
+          "973e9cf76143efe168f4c2b9ab5682581317e28c"
         ],
         "canonical_routes": [
-          "docs-site/src/content/docs/first-run.md",
-          "docs-site/src/content/docs/spec-kit-lifecycle.mdx"
+          "docs-site/src/content/docs/choose-your-path.mdx"
         ],
-        "canonical_component": "docs-site/src/components/LifecycleFlow.astro",
+        "canonical_component": "docs-site/src/components/SafeInstallAids.astro",
+        "canonical_data": "docs-site/src/data/safe-install-aids.ts",
+        "canonical_validation": "docs-site/scripts/validate-doc006-safe-aids.mjs",
         "verification": {
+          "focused_validation": "passed before PR merge",
           "docs_validate": "passed before PR merge",
           "docs_validate_links": "passed before PR merge",
-          "pr_packet_reviews": "8/8 passed before post-merge hygiene",
-          "default_suite": "passed before PR merge"
+          "privacy_scan": "passed before PR merge",
+          "default_suite": "passed before PR merge",
+          "manual_browser_uat": "PR #203 review feedback resolved before merge"
         }
       }
     ]
   },
   "next_specs": [
-    "DOC-006",
-    "DOC-007"
+    "DOC-007",
+    "DOC-008",
+    "DOC-009",
+    "DOC-010"
   ]
 }
