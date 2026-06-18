@@ -476,14 +476,14 @@ Focus on:
 
 | Item | Result |
 |------|--------|
-| Tasks | US2 slice T020-T023 complete in `tasks.md`; foundation and US1 are already merged on `main` |
-| Shared directive | Updated fallback and degradation behavior in `speckit-pro/skills/speckit-autopilot/references/capability-discovery.md` |
-| Claude guidance | Preserved merged capability-first agent guidance and added fallback evidence behavior where needed |
-| Codex guidance | Preserved merged compact-equivalent agent guidance and added fallback evidence behavior where needed |
+| Tasks | US3 slice T024-T028 complete in `tasks.md`; foundation, US1, and US2 are already merged on `main` |
+| Shared directive | Preserved semantic alignment expectations in `speckit-pro/skills/speckit-autopilot/references/capability-discovery.md` |
+| Claude guidance | Preserved merged capability-first agent guidance and aligned Claude surfaces with the shared semantics |
+| Codex guidance | Preserved merged compact-equivalent agent guidance and aligned Codex surfaces with the shared semantics |
 | Shared references | Preserved capability-first pointers in `consensus-protocol.md` and `gate-validation.md` |
 | Generated payloads | Refreshed generated Claude and Codex payload copies from source |
 | Payload coverage | Generated directive and agent copies exist under both `dist/claude/speckit-pro/` and `dist/codex/speckit-pro/` |
-| Changed-file evidence | `changed-files.txt` is refreshed from the PR #223 diff against `origin/main` |
+| Changed-file evidence | `changed-files.txt` is refreshed from the PR #224 diff against `origin/main` |
 | Verification | `git diff --check` passed; `bash tests/speckit-pro/run-all.sh --layer 1` passed `1024/1024`; `bash tests/speckit-pro/run-all.sh` passed `3041/3041` |
 
 ### Preserved-ID Review Table
@@ -499,9 +499,9 @@ Focus on:
 
 ## Post-Implementation Checklist
 
-- [x] US2 fallback evidence tasks are complete in `tasks.md`
-- [x] Shared directive or approved runtime equivalents include fallback behavior
-- [x] Active Claude/Codex US2 guidance describes degradation without requiring optional capabilities
+- [x] US3 semantic-alignment tasks are complete in `tasks.md`
+- [x] Shared directive or approved runtime equivalents preserve the same capability-first semantics
+- [x] Active Claude/Codex US3 guidance remains semantically aligned
 - [x] Metadata IDs are reviewed and classified
 - [x] Generated payloads are refreshed from source
 - [x] Focused validation passes
@@ -526,7 +526,7 @@ Focus on:
 
 ### Findings
 
-- No correctness issues found in the scoped US2 source or generated payload diffs.
+- No correctness issues found in the scoped US3 source or generated payload diffs.
 - Preserved named IDs are confined to allowlist/dependency metadata or generated runtime metadata.
 - The reviewability task gate size block remains recorded; final reviewability backstop still decides PR side effects.
 
