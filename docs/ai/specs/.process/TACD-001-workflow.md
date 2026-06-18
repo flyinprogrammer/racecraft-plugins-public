@@ -45,7 +45,7 @@ Re-read it before each phase. The design concept is the source of truth for the 
 | Checklist | `/speckit-checklist` | Complete | Integration, LLM Integration, and Error Handling checklists complete with 0 remaining gaps |
 | Tasks | `/speckit-tasks` | Complete | Created 30 tasks across 6 phases; G5 passed; marker plan created from size-only reviewability block |
 | Analyze | `/speckit-analyze` | Complete | 1 LOW task-phase drift finding remediated; marker counter clean; G6 passed |
-| Implement | `/speckit-implement` | In Progress | Produce the spike report and any appendix probe evidence only |
+| Implement | `/speckit-implement` | Complete | Added report and completed all 30 tasks; marker checkpoints recorded at `a8db2762` |
 
 **Status Legend:** Pending | In Progress | Complete | Blocked
 
@@ -445,13 +445,13 @@ bash speckit-pro/skills/speckit-autopilot/scripts/atomicity-route.sh specs/tacd-
 | Field | Value |
 |-------|-------|
 | **Schema** | `pr-marker-plan.v1` |
-| **Status** | `planned` |
+| **Status** | `emission_ready` |
 | **Evidence** | `specs/tacd-001-platform-mechanics-spike/.process/marker-plan/pr-marker-plan.json` |
 | **Reviewability Input** | `specs/tacd-001-platform-mechanics-spike/.process/marker-plan/reviewability-task-gate.json` (`status=block`, `is_size_only=true`, exit code 1) |
 | **Atomicity Input** | `specs/tacd-001-platform-mechanics-spike/.process/marker-plan/atomicity-route.json` |
 | **Ordered Markers** | 1. `foundation` (`T001`-`T005`); 2. `us1` (`T006`-`T015`); 3. `us3` (`T016`-`T019`); 4. `us2` (`T020`-`T024`, folded polish `T025`-`T030`) |
 | **Warnings** | `reviewability_size_warning`: task gate block is marker-planning input |
-| **Checkpoints** | Pending |
+| **Checkpoints** | `foundation`, `us1`, `us3`, and `us2` complete at `a8db2762` |
 | **Final Marker Split** | Pending |
 | **Packet Validation** | Pending |
 | **PR Mappings** | Pending |
@@ -528,21 +528,32 @@ Follow tasks.md in order. Treat TACD-001 as a research spike:
 
 | Phase | Tasks | Completed | Notes |
 |-------|-------|-----------|-------|
-| `foundation` | `T001`-`T005` | Pending | Report skeleton, scope, confidence rubric, inventory command plan, and no-behavior-change guardrail |
-| `us1` | `T006`-`T015` | Pending | Claude Code and Codex runtime-surface audit and mechanics evidence |
-| `us3` | `T016`-`T019` | Pending | Active-vs-historical allowlist and TACD-004 recommendations |
-| `us2` | `T020`-`T030` | Pending | Directive-home recommendation, downstream handoff, verification, citation review, and no-behavior-change scope review |
+| `foundation` | `T001`-`T005` | Complete | Report skeleton, scope, confidence rubric, inventory command plan, and no-behavior-change guardrail |
+| `us1` | `T006`-`T015` | Complete | Claude Code and Codex runtime-surface audit and mechanics evidence |
+| `us3` | `T016`-`T019` | Complete | Active-vs-historical allowlist and TACD-004 recommendations |
+| `us2` | `T020`-`T030` | Complete | Directive-home recommendation, downstream handoff, verification, citation review, and no-behavior-change scope review |
 
 ---
 
 ## Post-Implementation Checklist
 
-- [ ] `docs/ai/research/tool-agnostic-capability-discovery-spike.md` exists and cites source paths.
-- [ ] Probe appendix commands/results are reproducible or explicitly marked as environment-specific.
-- [ ] Active-vs-historical categories are specific enough for TACD-004.
-- [ ] TACD-002/TACD-003/TACD-004 handoffs are explicit.
-- [ ] No active runtime guidance, prerequisite behavior, docs messaging, generated payload semantics, or final enforcement tests changed outside the spike scope.
-- [ ] Targeted verification ran and results are recorded in the PR body.
+- [x] `docs/ai/research/tool-agnostic-capability-discovery-spike.md` exists and cites source paths.
+- [x] Probe appendix commands/results are reproducible or explicitly marked as environment-specific.
+- [x] Active-vs-historical categories are specific enough for TACD-004.
+- [x] TACD-002/TACD-003/TACD-004 handoffs are explicit.
+- [x] No active runtime guidance, prerequisite behavior, docs messaging, generated payload semantics, or final enforcement tests changed outside the spike scope.
+- [x] Targeted verification ran and results are recorded in PR packet and workflow evidence.
+
+### Post Verification Results
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| Doctor Extension Check | Pass | Equivalent checks from `.specify/extensions/speckit-utils/commands/doctor.md`; no files changed |
+| Verify Implementation | Warn | Equivalent `$speckit-verify` checks passed for TACD artifacts; upstream numeric branch-name prerequisite warned on `tacd-001-platform-mechanics-spike` |
+| Verify Tasks Phantom Check | Pass with warning | 30 completed tasks parsed; no phantom tasks; same upstream branch-name warning |
+| Code Review | Skipped | Review extension command not installed in `.specify/extensions/.registry` |
+| Integration Suite | Pass | `bash tests/speckit-pro/run-all.sh` -> `3009/3009 passed` |
+| Privacy Scan Fix | Pass | Removed local absolute home path from `autopilot-state.json`; `test-privacy-scan` and full suite pass |
 
 ---
 
