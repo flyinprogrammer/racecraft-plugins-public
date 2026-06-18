@@ -61,6 +61,7 @@ PRs should include a brief summary, affected plugin paths, test commands run, an
 - DOC-006 is archived in `.specify/memory/` as completed on 2026-06-17 after PR #203 merged.
 - DOC-007 is archived in `.specify/memory/` as completed on 2026-06-17 after PR #208 merged.
 - TACD-001 is archived in `.specify/memory/` as completed on 2026-06-18 after PRs #211-#214 and #216 merged.
+- TACD-002 is archived in `.specify/memory/` as completed on 2026-06-18 after PRs #221-#226 merged.
 - `specs/prsg-007-atomicity-router` and `specs/prsg-011-retro-migration` were removed from active `specs/**` cleanup after PR #136 decoupled Layer 4 dogfood/schema tests from the live PRSG-007 spec directory.
 - `specs/prsg-008-layer-planner` was removed from active `specs/**` cleanup after the planner schema fixture was vendored under `tests/speckit-pro/layer4-scripts/fixtures/plan-layers/contracts/`.
 - `specs/prsg-009-multi-pr-emission` was removed from active `specs/**` cleanup after PR #145 merged and the PRSG-009 contract schemas were preserved under `speckit-pro/skills/speckit-autopilot/contracts/`.
@@ -75,11 +76,15 @@ PRs should include a brief summary, affected plugin paths, test commands run, an
 - `specs/doc-006-safe-interactive-selector-and-validation-aids` was removed from active `specs/**` cleanup after PR #203 merged and recovery commands were recorded in `.specify/memory/archive-reports/2026-06-17-doc-006-post-merge-hygiene.md`.
 - `specs/doc-007-command-workflow-manifest-and-file-layout-reference` was removed from active `specs/**` cleanup after PR #208 merged and recovery commands were recorded in `.specify/memory/archive-reports/2026-06-17-doc-007-post-merge-hygiene.md`.
 - `specs/tacd-001-platform-mechanics-spike` was removed from active `specs/**` cleanup after PRs #211-#214 and #216 merged, the canonical spike report landed at `docs/ai/research/tool-agnostic-capability-discovery-spike.md`, and recovery commands were recorded in `.specify/memory/archive-reports/2026-06-18-tacd-001-post-merge-hygiene.md`.
+- `specs/tacd-002-capability-discovery-directive-and-agent-updates` was removed from active `specs/**` cleanup after PRs #221-#226 merged, the shared capability directive and marker-emission hardening landed in source/generator/test paths, and recovery commands were recorded in `.specify/memory/archive-reports/2026-06-18-tacd-002-post-merge-hygiene.md`.
 - `.specify/feature.json` is transient local state. Do not commit a stale completed-spec pointer back to `main`.
 
 ## Active Technologies
 - Docs-site JavaScript ESM on Node; Astro 6.4.6 and Starlight 0.40.0 for docs rendering; Node built-ins (`node:fs`, `node:path`, `node:url`) plus existing docs-site pnpm scripts and `starlight-links-validator`; no new runtime dependency planned. (doc-007-command-workflow-manifest-and-file-layout-reference)
 - Checked-in Markdown files under `docs-site/src/content/docs/reference/`; no database or browser storage. (doc-007-command-workflow-manifest-and-file-layout-reference)
+- Markdown content rendered by Astro 6.4.6 and Starlight 0.40.0; docs-site JavaScript ESM on Node for generated references; `docs-site/package.json` declares Astro, Starlight, `@astrojs/check`, and `starlight-links-validator`; no new dependency planned. (doc-009-maintainer-contributor-release-workflow)
+- Checked-in repository files only; no database, browser storage, or runtime service state. (doc-009-maintainer-contributor-release-workflow)
 
 ## Recent Changes
 - doc-007-command-workflow-manifest-and-file-layout-reference: Planned a docs-site reference generator that emits committed Markdown pages using Node built-ins and existing Astro/Starlight validation; no new runtime dependency planned.
+- doc-009-maintainer-contributor-release-workflow: Planned a docs-only release workflow page for maintainers and contributors using existing docs-site validation, release helper scripts, PR Checks, and release-please source evidence.

@@ -1,69 +1,82 @@
 {
   "schemaVersion": 1,
-  "workflow_file": "docs/ai/specs/.process/TACD-001-workflow.md",
+  "workflow_file": "docs/ai/specs/.process/TACD-002-workflow.md",
   "workflow_files": [
-    "docs/ai/specs/.process/TACD-001-workflow.md"
+    "docs/ai/specs/.process/TACD-002-workflow.md"
   ],
-  "feature_dir": "specs/tacd-001-platform-mechanics-spike",
+  "feature_dir": "specs/tacd-002-capability-discovery-directive-and-agent-updates",
   "feature_dirs": [
-    "specs/tacd-001-platform-mechanics-spike"
+    "specs/tacd-002-capability-discovery-directive-and-agent-updates"
   ],
-  "feature_branch": "codex/tacd-001-post-merge-hygiene",
-  "updated_at": "2026-06-18T01:37:02Z",
-  "active_step": "Archived",
+  "feature_branch": "tacd-002-capability-discovery-directive-and-agent-updates",
+  "updated_at": "2026-06-18T20:04:52Z",
+  "active_step": "Archive Cleanup",
   "status": "completed",
   "archive_sweep": {
     "status": "completed",
     "archive_extension_installed": true,
-    "cleanup_mode": "post-merge-hygiene",
-    "current_target": null,
+    "cleanup_mode": "single-feature-apply",
+    "current_target": "specs/tacd-002-capability-discovery-directive-and-agent-updates",
     "excluded_current_spec": null,
     "eligible_previous_specs": [
-      "specs/tacd-001-platform-mechanics-spike"
+      "specs/tacd-002-capability-discovery-directive-and-agent-updates"
     ],
     "safeToApplyCleanup": true,
     "dryRunProvenanceOnly": false,
-    "archive_report": ".specify/memory/archive-reports/2026-06-18-tacd-001-post-merge-hygiene.md",
-    "cleanup_applied": true
+    "archive_report": ".specify/memory/archive-reports/2026-06-18-tacd-002-post-merge-hygiene.md",
+    "cleanup_branch": "codex/tacd-002-post-merge-hygiene",
+    "notes": [
+      "PRs #221-#226 are merged into main.",
+      "The completed TACD-002 active spec folder is removed from specs/** cleanup.",
+      "Process files under docs/ai/specs/.process/ are retained for workflow provenance."
+    ]
   },
-  "implementation": {
-    "status": "completed",
-    "gate": "G7",
-    "gate_status": "passed",
-    "completed_specs": [
+  "provenance": {
+    "merged_prs": [
       {
-        "spec_id": "TACD-001",
-        "merged_prs": [
-          211,
-          212,
-          213,
-          214,
-          216
-        ],
-        "merge_commits": [
-          "2104432cb8d92c0088b99f02e0922d5ebf433a98",
-          "e9d3c08af55658b97452c86c294bae0b340a3bc4",
-          "dfa18a20691b86724cc05008c2b3fae93a0d9127",
-          "46d01dcf081a8c416c692db497daea5cae11a801",
-          "62dc58a46419ed09c1aa506974ef8c7fbab998ee"
-        ],
-        "canonical_report": "docs/ai/research/tool-agnostic-capability-discovery-spike.md",
-        "canonical_prd": "docs/prd-tool-agnostic-capability-discovery.md",
-        "canonical_roadmap": "docs/ai/specs/tool-agnostic-capability-discovery-technical-roadmap.md",
-        "canonical_moc": "docs/ai/specs/tool-agnostic-capability-discovery-roadmap-MOC.md",
-        "verification": {
-          "default_suite": "passed before PR merge",
-          "github_checks": "passed on PRs #214 and #216",
-          "archive_cleanup": "passed in codex/tacd-001-post-merge-hygiene"
-        }
+        "number": 221,
+        "title": "feat(TACD-002): Add capability discovery foundation",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/221",
+        "merged_at": "2026-06-18T17:19:33Z",
+        "merge_commit": "b63dfc95525eb64f9f221d7f2513c9ab9c36b314"
+      },
+      {
+        "number": 222,
+        "title": "feat(TACD-002): Update agent capability selection",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/222",
+        "merged_at": "2026-06-18T17:42:02Z",
+        "merge_commit": "da9a7c5cd6ba567f1530e396cfc69527948bf7a7"
+      },
+      {
+        "number": 223,
+        "title": "feat(TACD-002): Document fallback evidence behavior",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/223",
+        "merged_at": "2026-06-18T17:54:57Z",
+        "merge_commit": "2060789358cdf4cd946d423238ee2be1f7f90675"
+      },
+      {
+        "number": 224,
+        "title": "feat(TACD-002): Align Claude and Codex guidance",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/224",
+        "merged_at": "2026-06-18T19:01:30Z",
+        "merge_commit": "4203e1011a1d67220e0e82115108759446fa04cf"
+      },
+      {
+        "number": 225,
+        "title": "feat(TACD-002): Refresh generated capability payloads",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/225",
+        "merged_at": "2026-06-18T19:22:08Z",
+        "merge_commit": "12ff3667a36906552bb47ee11b7b53239d42f391"
+      },
+      {
+        "number": 226,
+        "title": "feat(TACD-002): Emit ordered slice PRs",
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/226",
+        "merged_at": "2026-06-18T20:04:52Z",
+        "merge_commit": "130abd2b6329e774207c84ab798cfb5b6dab7131"
       }
     ]
   },
-  "next_specs": [
-    "TACD-002",
-    "TACD-003",
-    "TACD-004"
-  ],
   "project_commands": {
     "BUILD": "N/A",
     "TYPECHECK": "N/A",
@@ -74,5 +87,47 @@
     "SINGLE_FILE_TEST": "N/A",
     "SINGLE_FILE_INTEGRATION": "N/A",
     "FULL_VERIFY": "bash tests/speckit-pro/run-all.sh"
-  }
+  },
+  "post_results": {
+    "integration_suite_before_merge": {
+      "status": "completed",
+      "command": "bash tests/speckit-pro/run-all.sh",
+      "result": "3067/3067 passed"
+    },
+    "archive_cleanup": {
+      "status": "completed",
+      "report": ".specify/memory/archive-reports/2026-06-18-tacd-002-post-merge-hygiene.md",
+      "cleanup_command": "git rm -r specs/tacd-002-capability-discovery-directive-and-agent-updates",
+      "verification": [
+        "python3 -m json.tool docs/ai/specs/.process/autopilot-state.json: passed",
+        "bash speckit-pro/skills/speckit-autopilot/scripts/generate-spec-index.sh .: regenerated",
+        "bash speckit-pro/skills/speckit-autopilot/scripts/generate-spec-index.sh --check .: passed",
+        "find specs -mindepth 1 -maxdepth 4 -print: DOC-008, DOC-009, and specs/.gitkeep remain",
+        "git diff --check: passed",
+        "bash tests/speckit-pro/run-all.sh: 3067/3067 passed"
+      ]
+    }
+  },
+  "plan": [
+    {
+      "step": "Confirm merged PR stack #221-#226",
+      "status": "completed"
+    },
+    {
+      "step": "Record archive provenance and memory entries",
+      "status": "completed"
+    },
+    {
+      "step": "Remove completed active spec folder",
+      "status": "completed"
+    },
+    {
+      "step": "Regenerate and verify spec indexes",
+      "status": "completed"
+    },
+    {
+      "step": "Run cleanup verification suite",
+      "status": "completed"
+    }
+  ]
 }
