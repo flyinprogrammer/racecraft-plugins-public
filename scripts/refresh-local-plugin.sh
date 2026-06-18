@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # refresh-local-plugin.sh -- Maintainer helper for local plugin payload refresh.
 #
-# Safe default: rebuild and validate generated payloads, then print the
-# Claude Code one-session local development command. Installed plugin cache
-# mutation is opt-in via --codex, --claude-install, or --all.
+# Default: rebuild and validate generated payloads, then refresh both the Claude
+# Code and Codex installed-plugin caches so local dogfooding picks up changes.
+# Opt out of either cache refresh with --no-codex or --no-claude-install.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,8 +15,8 @@ CLAUDE_SCOPE="user"
 
 RUN_BUILD=1
 RUN_VALIDATE=1
-RUN_CODEX=0
-RUN_CLAUDE_INSTALL=0
+RUN_CODEX=1
+RUN_CLAUDE_INSTALL=1
 RUN_CLAUDE_LAUNCH=0
 DRY_RUN=0
 
@@ -24,25 +24,28 @@ usage() {
   cat <<'EOF'
 Usage: scripts/refresh-local-plugin.sh [options]
 
-Rebuild generated plugin payloads and optionally refresh local Claude Code or
-Codex installed-plugin caches for maintainer dogfooding.
+Rebuild generated plugin payloads and refresh the local Claude Code and Codex
+installed-plugin caches for maintainer dogfooding.
 
-Safe default:
-  Rebuild dist payloads, validate the Claude payload, and print the recommended
-  Claude Code local-development command:
+Default:
+  Rebuild dist payloads, validate the Claude payload, refresh both the Claude
+  Code and Codex installed-plugin caches, and print the recommended Claude Code
+  local-development command:
 
     claude --plugin-dir dist/claude/speckit-pro
 
 Options:
-  --all              Refresh Codex and Claude installed-plugin caches.
-  --codex            Refresh the Codex installed plugin via remove/add.
-  --claude-install   Refresh Claude Code's installed plugin cache.
-  --launch-claude    Launch Claude Code with --plugin-dir for this session.
-  --scope SCOPE      Claude install scope: user, project, or local. Default: user.
-  --no-build         Skip payload rebuild.
-  --no-validate      Skip Claude payload validation.
-  --dry-run          Print commands without running them.
-  -h, --help         Show this help.
+  --all                Refresh Codex and Claude installed-plugin caches (default).
+  --codex              Refresh the Codex installed plugin via remove/add (default).
+  --claude-install     Refresh Claude Code's installed plugin cache (default).
+  --no-codex           Skip the Codex installed-plugin cache refresh.
+  --no-claude-install  Skip Claude Code's installed-plugin cache refresh.
+  --launch-claude      Launch Claude Code with --plugin-dir for this session.
+  --scope SCOPE        Claude install scope: user, project, or local. Default: user.
+  --no-build           Skip payload rebuild.
+  --no-validate        Skip Claude payload validation.
+  --dry-run            Print commands without running them.
+  -h, --help           Show this help.
 
 Environment:
   SPECKIT_PLUGIN_NAME   Plugin name. Default: speckit-pro
@@ -127,6 +130,12 @@ parse_args() {
         ;;
       --claude-install)
         RUN_CLAUDE_INSTALL=1
+        ;;
+      --no-codex)
+        RUN_CODEX=0
+        ;;
+      --no-claude-install)
+        RUN_CLAUDE_INSTALL=0
         ;;
       --launch-claude)
         RUN_CLAUDE_LAUNCH=1
@@ -289,11 +298,11 @@ print_guidance() {
   fi
 
   if [ "$RUN_CLAUDE_INSTALL" -eq 0 ]; then
-    echo "Claude installed-cache refresh is opt-in: rerun with --claude-install when you need it."
+    echo "Skipped Claude installed-cache refresh (--no-claude-install)."
   fi
 
   if [ "$RUN_CODEX" -eq 0 ]; then
-    echo "Codex installed-cache refresh is opt-in: rerun with --codex when you need it."
+    echo "Skipped Codex installed-cache refresh (--no-codex)."
   fi
 }
 

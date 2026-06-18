@@ -25,7 +25,7 @@ output=$(bash "$SCRIPT" --help 2>&1) || result=$?
 assert_eq "0" "$result" "exit code"
 assert_contains "$output" "--codex" "help should document --codex"
 
-section "Dry-run safe default"
+section "Dry-run default"
 
 set_test "dry-run default rebuilds, validates, and prints Claude dev command"
 result=0
@@ -35,9 +35,16 @@ assert_contains "$output" "build-plugin-payloads.sh" "dry-run should include pay
 assert_contains "$output" "claude plugin validate" "dry-run should include Claude validation"
 assert_contains "$output" "claude --plugin-dir" "dry-run should print local dev command"
 
-set_test "dry-run default does not mutate installed plugin caches"
-assert_not_contains "$output" "plugin uninstall" "default should not uninstall Claude plugin"
-assert_not_contains "$output" "codex plugin remove" "default should not remove Codex plugin"
+set_test "dry-run default refreshes both installed plugin caches"
+assert_contains "$output" "plugin uninstall" "default should uninstall Claude plugin"
+assert_contains "$output" "codex plugin remove" "default should remove Codex plugin"
+
+set_test "dry-run opt-outs skip installed plugin cache refresh"
+result=0
+output=$(bash "$SCRIPT" --dry-run --no-codex --no-claude-install 2>&1) || result=$?
+assert_eq "0" "$result" "exit code"
+assert_not_contains "$output" "plugin uninstall" "--no-claude-install should skip Claude uninstall"
+assert_not_contains "$output" "codex plugin remove" "--no-codex should skip Codex remove"
 
 set_test "dry-run all prints refresh commands without requiring real CLI state"
 FAIL_BIN="$TMP_ROOT/fail-bin"
