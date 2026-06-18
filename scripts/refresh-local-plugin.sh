@@ -198,15 +198,17 @@ validate_claude_payload() {
 }
 
 claude_marketplace_root() {
-  claude plugin marketplace list 2>/dev/null | awk -v name="$MARKETPLACE" '
-    index($0, name) { found=1; next }
-    found && /Source: Directory/ {
-      sub(/^.*Source: Directory \(/, "")
-      sub(/\).*$/, "")
+  claude plugin marketplace list | awk -v name="$MARKETPLACE" '
+    # Match the marketplace-name row exactly, tolerant of the leading
+    # selection marker (ASCII ">" or unicode "❯") and surrounding whitespace.
+    $0 ~ "^[^[:alnum:]]*" name "[[:space:]]*$" { found=1; next }
+    found && /^[[:space:]]*Source: Directory \(/ {
+      sub(/^[[:space:]]*Source: Directory \(/, "")
+      sub(/\)[[:space:]]*$/, "")
       print
       exit
     }
-    found && /Source:/ { exit }
+    found && /^[[:space:]]*Source:/ { exit }
   '
 }
 
@@ -218,7 +220,9 @@ ensure_claude_marketplace_is_local() {
     return
   fi
 
-  root="$(claude_marketplace_root || true)"
+  if ! root="$(claude_marketplace_root)"; then
+    die "failed to inspect Claude marketplace list"
+  fi
 
   if [ "$root" = "$REPO_ROOT" ]; then
     return
@@ -238,16 +242,32 @@ refresh_claude_install() {
 
   echo "==> Refreshing $(plugin_selector) in Claude Code ($CLAUDE_SCOPE scope) ..."
   if [ "$DRY_RUN" -eq 1 ]; then
-    printf '+ claude plugin uninstall %q --scope %q -y || true\n' "$(plugin_selector)" "$CLAUDE_SCOPE"
+    printf '+ claude plugin uninstall %q --scope %q -y\n' "$(plugin_selector)" "$CLAUDE_SCOPE"
   else
-    claude plugin uninstall "$(plugin_selector)" --scope "$CLAUDE_SCOPE" -y >/dev/null 2>&1 || true
+    local uninstall_output
+    if ! uninstall_output="$(claude plugin uninstall "$(plugin_selector)" --scope "$CLAUDE_SCOPE" -y 2>&1)"; then
+      case "$uninstall_output" in
+        *"not installed"*|*"not found"*) ;;
+        *)
+          printf '%s\n' "$uninstall_output" >&2
+          die "failed to uninstall $(plugin_selector) from Claude Code"
+          ;;
+      esac
+    fi
   fi
   run_cmd claude plugin install "$(plugin_selector)" --scope "$CLAUDE_SCOPE"
   echo "    Restart Claude Code or run /reload-plugins in an existing session."
 }
 
 codex_marketplace_root() {
-  codex plugin marketplace list 2>/dev/null | awk -v name="$MARKETPLACE" '$1 == name {print $2; exit}'
+  codex plugin marketplace list | awk -v name="$MARKETPLACE" '
+    $1 == name {
+      root = $0
+      sub(/^[[:space:]]*[^[:space:]]+[[:space:]]+/, "", root)
+      print root
+      exit
+    }
+  '
 }
 
 ensure_codex_marketplace_is_local() {
@@ -258,7 +278,9 @@ ensure_codex_marketplace_is_local() {
     return
   fi
 
-  root="$(codex_marketplace_root || true)"
+  if ! root="$(codex_marketplace_root)"; then
+    die "failed to inspect Codex marketplace list"
+  fi
 
   if [ "$root" = "$REPO_ROOT" ]; then
     return
@@ -278,9 +300,18 @@ refresh_codex_install() {
 
   echo "==> Refreshing $(plugin_selector) in Codex ..."
   if [ "$DRY_RUN" -eq 1 ]; then
-    printf '+ codex plugin remove %q || true\n' "$(plugin_selector)"
+    printf '+ codex plugin remove %q\n' "$(plugin_selector)"
   else
-    codex plugin remove "$(plugin_selector)" >/dev/null 2>&1 || true
+    local remove_output
+    if ! remove_output="$(codex plugin remove "$(plugin_selector)" 2>&1)"; then
+      case "$remove_output" in
+        *"not installed"*|*"not found"*) ;;
+        *)
+          printf '%s\n' "$remove_output" >&2
+          die "failed to remove $(plugin_selector) from Codex"
+          ;;
+      esac
+    fi
   fi
   run_cmd codex plugin add "$(plugin_selector)"
   echo "    Start a new Codex thread to pick up refreshed plugin skills and tools."

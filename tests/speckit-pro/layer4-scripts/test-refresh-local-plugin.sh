@@ -80,7 +80,7 @@ if [ "\$1 \$2 \$3" = "plugin marketplace list" ]; then
   cat <<'LIST'
 Configured marketplaces:
 
-  > racecraft-plugins-public
+  ❯ racecraft-plugins-public
     Source: Directory ($REPO_ROOT)
 LIST
 fi
@@ -108,6 +108,7 @@ output=$(PATH="$STUB_BIN:$PATH" bash "$SCRIPT" --no-build --no-validate --codex 
 assert_eq "0" "$result" "exit code"
 calls=$(cat "$CALL_LOG")
 assert_contains "$calls" "codex plugin marketplace list" "should inspect Codex marketplace"
+assert_contains "$calls" "codex plugin remove speckit-pro@racecraft-plugins-public" "should remove stale Codex plugin"
 assert_contains "$calls" "codex plugin add speckit-pro@racecraft-plugins-public" "should reinstall Codex plugin"
 assert_contains "$output" "Start a new Codex thread" "should report restart guidance"
 
@@ -118,6 +119,7 @@ output=$(PATH="$STUB_BIN:$PATH" bash "$SCRIPT" --no-build --no-validate --claude
 assert_eq "0" "$result" "exit code"
 calls=$(cat "$CALL_LOG")
 assert_contains "$calls" "claude plugin marketplace list" "should inspect Claude marketplace"
+assert_contains "$calls" "claude plugin uninstall speckit-pro@racecraft-plugins-public --scope local -y" "should remove stale Claude plugin"
 assert_contains "$calls" "claude plugin install speckit-pro@racecraft-plugins-public --scope local" "should install at requested scope"
 assert_contains "$output" "/reload-plugins" "should report Claude reload guidance"
 
