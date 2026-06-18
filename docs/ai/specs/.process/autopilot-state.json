@@ -1,78 +1,315 @@
 {
   "schemaVersion": 1,
-  "workflow_file": "docs/ai/specs/.process/TACD-001-workflow.md",
+  "workflow_file": "docs/ai/specs/.process/DOC-008-workflow.md",
   "workflow_files": [
-    "docs/ai/specs/.process/TACD-001-workflow.md"
+    "docs/ai/specs/.process/DOC-008-workflow.md"
   ],
-  "feature_dir": "specs/tacd-001-platform-mechanics-spike",
+  "feature_dir": "specs/doc-008-troubleshooting-security-trust-update-rollback",
   "feature_dirs": [
-    "specs/tacd-001-platform-mechanics-spike"
+    "specs/doc-008-troubleshooting-security-trust-update-rollback"
   ],
-  "feature_branch": "codex/tacd-001-post-merge-hygiene",
-  "updated_at": "2026-06-18T01:37:02Z",
-  "active_step": "Archived",
+  "feature_branch": "doc-008-troubleshooting-security-trust-update-rollback",
+  "updated_at": "2026-06-18T04:50:48Z",
+  "active_step": "Complete",
   "status": "completed",
+  "confidence_gate_mode": "advisory",
   "archive_sweep": {
     "status": "completed",
     "archive_extension_installed": true,
-    "cleanup_mode": "post-merge-hygiene",
-    "current_target": null,
-    "excluded_current_spec": null,
-    "eligible_previous_specs": [
-      "specs/tacd-001-platform-mechanics-spike"
-    ],
-    "safeToApplyCleanup": true,
-    "dryRunProvenanceOnly": false,
-    "archive_report": ".specify/memory/archive-reports/2026-06-18-tacd-001-post-merge-hygiene.md",
-    "cleanup_applied": true
+    "cleanup_mode": "feature-branch-sweep",
+    "current_target": "specs/doc-008-troubleshooting-security-trust-update-rollback",
+    "excluded_current_spec": "specs/doc-008-troubleshooting-security-trust-update-rollback",
+    "eligible_previous_specs": [],
+    "active_non_current_specs": [],
+    "safeToApplyCleanup": false,
+    "dryRunProvenanceOnly": true,
+    "notes": "Archive command is extension/skill-document based rather than a specify CLI subcommand in this Codex surface. Static sweep found only the current DOC-008 target; TACD-001 was archived on main, so no DOC-008 cleanup was applied."
   },
-  "implementation": {
+  "prerequisites": {
     "status": "completed",
-    "gate": "G7",
-    "gate_status": "passed",
-    "completed_specs": [
-      {
-        "spec_id": "TACD-001",
-        "merged_prs": [
-          211,
-          212,
-          213,
-          214,
-          216
-        ],
-        "merge_commits": [
-          "2104432cb8d92c0088b99f02e0922d5ebf433a98",
-          "e9d3c08af55658b97452c86c294bae0b340a3bc4",
-          "dfa18a20691b86724cc05008c2b3fae93a0d9127",
-          "46d01dcf081a8c416c692db497daea5cae11a801",
-          "62dc58a46419ed09c1aa506974ef8c7fbab998ee"
-        ],
-        "canonical_report": "docs/ai/research/tool-agnostic-capability-discovery-spike.md",
-        "canonical_prd": "docs/prd-tool-agnostic-capability-discovery.md",
-        "canonical_roadmap": "docs/ai/specs/tool-agnostic-capability-discovery-technical-roadmap.md",
-        "canonical_moc": "docs/ai/specs/tool-agnostic-capability-discovery-roadmap-MOC.md",
-        "verification": {
-          "default_suite": "passed before PR merge",
-          "github_checks": "passed on PRs #214 and #216",
-          "archive_cleanup": "passed in codex/tacd-001-post-merge-hygiene"
-        }
-      }
-    ]
+    "speckit_cli": "specify 0.10.3.dev0",
+    "branch": "doc-008-troubleshooting-security-trust-update-rollback",
+    "is_worktree": true,
+    "required_codex_agents": "installed in user-scoped Codex agents directory",
+    "optional_codex_agents": {
+      "autopilot-fast-helper": "installed",
+      "uat-runbook-author": "bundled but not installed as a spawnable Codex role; UAT authoring is fail-open if unavailable"
+    },
+    "mcp_servers": "Some MCP servers not configured; agents will use built-in fallbacks.",
+    "project_commands": {
+      "BUILD": "N/A",
+      "TYPECHECK": "N/A",
+      "LINT": "N/A",
+      "LINT_FIX": "N/A",
+      "UNIT_TEST": "N/A",
+      "INTEGRATION_TEST": "N/A",
+      "SINGLE_FILE_TEST": "N/A",
+      "SINGLE_FILE_INTEGRATION": "N/A",
+      "FULL_VERIFY": "N/A"
+    },
+    "preset": "speckit-pro-reviewability",
+    "model_check": "Parent config uses gpt-5.5 with model_reasoning_effort=xhigh; required SpecKit Pro subagents are installed with gpt-5.5/xhigh.",
+    "validation_baseline": {
+      "reference_check": "passed",
+      "docs_validate": "passed after docs-site dependency install",
+      "validate_links": "passed",
+      "dependency_install": "pnpm --dir docs-site install required approved network access after sandbox DNS ENOTFOUND"
+    }
   },
-  "next_specs": [
-    "TACD-002",
-    "TACD-003",
-    "TACD-004"
+  "plan": [
+    {
+      "step": "Archive Sweep: previously merged specs dry-run/apply eligibility",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 0: Prerequisites",
+      "status": "completed"
+    },
+    {
+      "step": "Phase 1: Specify",
+      "status": "completed",
+      "gate": "G1",
+      "gate_status": "passed",
+      "summary": "Created spec.md with 3 user stories, 17 functional requirements, 9 acceptance scenarios, and 0 clarification markers."
+    },
+    {
+      "step": "Phase 2: Clarify - IA and Route Boundaries",
+      "status": "completed",
+      "summary": "Answered 4 IA/route questions. Route/sidebar already resolved; consensus clarified that DOC-008 should link from hand-authored reference pages unless it explicitly changes the reference generator."
+    },
+    {
+      "step": "Phase 2: Clarify - IA and Route Boundaries Consensus",
+      "status": "completed",
+      "round": 1,
+      "outcome": "both-agree",
+      "summary": "Codebase and spec-context analysts agreed with high confidence that generated DOC-007 reference subpages should not receive hand-edited DOC-008 backlinks."
+    },
+    {
+      "step": "Phase 2: Clarify - Troubleshooting Matrix",
+      "status": "completed",
+      "summary": "Answered 5 troubleshooting matrix questions. Security-tagged consensus and user confirmation made row categories explicit and restricted inspect command/file cells to read-only inspection guidance."
+    },
+    {
+      "step": "Phase 2: Clarify - Troubleshooting Matrix Consensus",
+      "status": "completed",
+      "round": 1,
+      "outcome": "all-agree-human-confirmed",
+      "summary": "Codebase, spec-context, and domain-research analysts agreed with high confidence on explicit troubleshooting categories and read-only inspection boundaries; user accepted security-tagged edits."
+    },
+    {
+      "step": "Phase 2: Clarify - Security, Trust, and Sources",
+      "status": "completed",
+      "summary": "Answered 5 security/trust/source-policy questions. Security-tagged consensus and user confirmation expanded the vendor citation inventory, tightened claim-specific evidence policy, and clarified cache/recovery boundaries."
+    },
+    {
+      "step": "Phase 2: Clarify - Security, Trust, and Sources Consensus",
+      "status": "completed",
+      "round": 1,
+      "outcome": "all-agree-human-confirmed",
+      "summary": "Codebase, spec-context, and domain-research analysts agreed with high confidence on the expanded citation set and cache wording; user accepted security-tagged edits."
+    },
+    {
+      "step": "Phase 2: Clarify - Update and Rollback Recovery",
+      "status": "completed",
+      "summary": "Answered 5 update/rollback recovery questions. Recovery cases now require checkpoint/action/side-effect/reload-source structure, and Codex installed state must use CLI JSON/runtime-observation wording rather than stable hardcoded cache-path claims."
+    },
+    {
+      "step": "Phase 2: Clarify - Update and Rollback Recovery Consensus",
+      "status": "completed",
+      "round": 1,
+      "outcome": "all-agree",
+      "summary": "Codebase, spec-context, and domain-research analysts agreed that hardcoded Codex cache paths are repository/plugin-owned local runtime evidence unless current OpenAI docs document the exact path."
+    },
+    {
+      "step": "Phase 3: Plan",
+      "status": "completed",
+      "gate": "G3",
+      "gate_status": "passed",
+      "summary": "Created plan.md, research.md, data-model.md, and quickstart.md. G3 passed with 0 unresolved markers; contracts omitted because DOC-008 has no API, CLI, schema, or generated data artifact."
+    },
+    {
+      "step": "Phase 4: Checklist - UX",
+      "status": "completed",
+      "summary": "Generated UX checklist with 14 items. Remediated 1 gap by adding hand-authored reference.md handoff scope; 0 gaps remain."
+    },
+    {
+      "step": "Phase 4: Checklist - UX Consensus",
+      "status": "completed",
+      "outcome": "not-needed",
+      "summary": "UX checklist executor reported no unresolved consensus items."
+    },
+    {
+      "step": "Phase 4: Checklist - Security",
+      "status": "completed",
+      "summary": "Generated security checklist with 18 items. Remediated 1 gap by making browser permission/workflow boundaries explicit; 0 gaps remain."
+    },
+    {
+      "step": "Phase 4: Checklist - Security Consensus",
+      "status": "completed",
+      "outcome": "not-needed",
+      "summary": "Security checklist executor reported no unresolved consensus items."
+    },
+    {
+      "step": "Phase 4: Checklist - Error Handling",
+      "status": "completed",
+      "summary": "Generated error-handling checklist with 18 items. No substantive spec or plan gaps found; 0 gaps remain."
+    },
+    {
+      "step": "Phase 4: Checklist - Error Handling Consensus",
+      "status": "completed",
+      "outcome": "not-needed",
+      "summary": "Error Handling checklist executor reported no unresolved consensus items."
+    },
+    {
+      "step": "Phase 4: Checklist - Accessibility",
+      "status": "completed",
+      "summary": "Generated accessibility checklist with 18 items. Remediated 4 gaps for semantic matrix headers, readable row/case labels, stable headings/descriptive link text, and static Markdown success criteria; 0 gaps remain."
+    },
+    {
+      "step": "Phase 4: Checklist - Accessibility Consensus",
+      "status": "completed",
+      "outcome": "not-needed",
+      "summary": "Accessibility checklist executor reported no unresolved consensus items."
+    },
+    {
+      "step": "Phase 5: Tasks",
+      "status": "completed",
+      "gate": "G5",
+      "gate_status": "passed",
+      "summary": "Created tasks.md with 40 story-ordered docs tasks across 6 phases, 8 parallel-safe markers, and explicit validation/source-citation review tasks."
+    },
+    {
+      "step": "Phase 6: Analyze",
+      "status": "completed",
+      "gate": "G6",
+      "gate_status": "passed",
+      "summary": "Analyze found 1 medium AC traceability gap in tasks.md and remediated it by mapping PRD AC-8.1 through AC-8.6 to user stories and task IDs; 0 findings remain."
+    },
+    {
+      "step": "Phase 6: Analyze - Consensus",
+      "status": "completed",
+      "outcome": "not-needed",
+      "summary": "Analyze executor reported no unresolved consensus items."
+    },
+    {
+      "step": "Phase 6.5: Confidence Gate",
+      "status": "completed",
+      "mode": "advisory",
+      "outcome": "soft_skip",
+      "summary": "No synthesizer confidence emit was present in the workflow file; advisory confidence gate soft-skipped. Atomicity classifier returned one-navigable-PR, releasable true, no warnings."
+    },
+    {
+      "step": "Phase 7: Implement - Pending task decomposition",
+      "status": "completed",
+      "summary": "Task decomposition completed in tasks.md with setup, foundation, US1, US2, US3, and polish phases."
+    },
+    {
+      "step": "Phase 7: Implement - Setup and Foundation",
+      "status": "completed",
+      "summary": "Reviewed DOC-008 file operations, route shells, sidebar placement, source inventory, generated DOC-007 references, validation commands, and scope guard."
+    },
+    {
+      "step": "Phase 7: Implement - User Story 1 Troubleshooting",
+      "status": "completed",
+      "summary": "Expanded troubleshooting.md into a source-cited symptom matrix with platform labels, read-only inspection guidance, safe recovery handoffs, and support anchors."
+    },
+    {
+      "step": "Phase 7: Implement - User Story 2 Security and Trust",
+      "status": "completed",
+      "summary": "Expanded security-and-trust.md with official vendor behavior, Racecraft repository facts, recommended-practice boundaries, evaluator checklist, and no-audit/no-certification positioning."
+    },
+    {
+      "step": "Phase 7: Implement - User Story 3 Update and Rollback",
+      "status": "completed",
+      "summary": "Added update-and-rollback.md with recovery cases for update, refresh, reinstall, remove, rollback, stale payload, stale cache, and version sync."
+    },
+    {
+      "step": "Phase 7: Implement - Polish and Validation",
+      "status": "completed",
+      "gate": "G7",
+      "gate_status": "passed",
+      "summary": "Added sidebar/install/reference handoffs, marked all 40 tasks complete, updated one weak source citation, and reran docs validation. G7 passed with 40/40 tasks complete."
+    },
+    {
+      "step": "Post: Doctor Extension Check",
+      "status": "skipped",
+      "summary": "No runnable Codex doctor command was registered. speckit-utils is enabled in .specify/extensions/.registry but registered only for Claude command files."
+    },
+    {
+      "step": "Post: Verify Implementation",
+      "status": "skipped",
+      "summary": "$speckit-verify is registered only for Claude in this worktree; no runnable Codex command or skill was available."
+    },
+    {
+      "step": "Post: Verify Tasks Phantom Check",
+      "status": "skipped",
+      "summary": "$speckit-verify-tasks is registered only for Claude in this worktree; no runnable Codex command or skill was available. G7 separately confirmed 40/40 tasks complete."
+    },
+    {
+      "step": "Post: Code Review",
+      "status": "completed",
+      "summary": "Subagent review found the new route file was untracked and one Spec Kit CLI row citation was weak. The route file will be staged and the citation was updated to scripts evidence."
+    },
+    {
+      "step": "Post: Integration Suite",
+      "status": "completed",
+      "summary": "Passed pnpm --dir docs-site reference:check, pnpm --dir docs-site validate, pnpm --dir docs-site validate:links, git diff --check, and G7."
+    },
+    {
+      "step": "Post: Cleanup",
+      "status": "skipped",
+      "summary": "No runnable Codex cleanup extension command was installed."
+    },
+    {
+      "step": "Post: Reviewability Diff Gate",
+      "status": "completed",
+      "summary": "Final reviewability backstop proceeded with status warn: total files 25 exceeds warn threshold 15 and primary surfaces 4 exceeds warn threshold 1; no blockers remained after keeping UAT evidence transient."
+    },
+    {
+      "step": "Post: Self-Review",
+      "status": "completed",
+      "summary": "Parent self-review found no unresolved markers, unsafe cache-default guidance, or generated reference subpage edits."
+    },
+    {
+      "step": "Post: UAT Runbook Generation",
+      "status": "completed",
+      "summary": "Generated a DOC-008 UAT skeleton during post checks. The file is regenerated transiently for PR body generation rather than committed, keeping the final diff within reviewability limits."
+    },
+    {
+      "step": "Post: PR Body Generation",
+      "status": "completed",
+      "summary": "Generated transient PR packet/body, edited sanctioned DOC-008 prose fields, validated packet successfully, and passed validate-pr-workflow-contract with title docs(DOC-008): Add troubleshooting, Security, Trust, Update, and Rollback."
+    },
+    {
+      "step": "Post: PR Creation",
+      "status": "completed",
+      "summary": "Created PR #220: https://github.com/racecraft-lab/racecraft-plugins-public/pull/220."
+    },
+    {
+      "step": "Post: Review Remediation",
+      "status": "completed",
+      "summary": "PR was newly created with no review feedback or requested changes to remediate."
+    },
+    {
+      "step": "Post: Retrospective",
+      "status": "skipped",
+      "summary": "Retrospective extension is registered only for Claude in this worktree; no runnable Codex retrospective command or skill was available."
+    }
   ],
-  "project_commands": {
-    "BUILD": "N/A",
-    "TYPECHECK": "N/A",
-    "LINT": "N/A",
-    "LINT_FIX": "N/A",
-    "UNIT_TEST": "N/A",
-    "INTEGRATION_TEST": "N/A",
-    "SINGLE_FILE_TEST": "N/A",
-    "SINGLE_FILE_INTEGRATION": "N/A",
-    "FULL_VERIFY": "bash tests/speckit-pro/run-all.sh"
+  "plan_audit": {
+    "required_prefixes": [
+      "Archive Sweep:",
+      "Phase 0:",
+      "Phase 1:",
+      "Phase 2:",
+      "Phase 3:",
+      "Phase 4:",
+      "Phase 5:",
+      "Phase 6:",
+      "Phase 7:",
+      "Post:"
+    ],
+    "coverage": "complete",
+    "in_progress_count": 0
   }
 }
