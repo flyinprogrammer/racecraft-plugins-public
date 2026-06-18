@@ -131,6 +131,110 @@ assert_eq "0" "$result" "exit code"
 calls=$(cat "$CALL_LOG")
 assert_contains "$calls" "claude --plugin-dir $REPO_ROOT/dist/claude/speckit-pro" "should launch with dist Claude payload"
 
+section "Cache-refresh failure handling"
+
+# Env-driven stubs so each case can configure marketplace state and the exit
+# code / message of uninstall / remove. The stubs read CALL_LOG, STUB_REPO_ROOT,
+# and the per-case MKT_MODE / *_RC / *_MSG variables from the environment, which
+# the script passes through to its child CLI processes.
+FSTUB="$TMP_ROOT/fail-stub"
+mkdir -p "$FSTUB"
+
+cat > "$FSTUB/claude" <<'STUB'
+#!/usr/bin/env bash
+printf 'claude %s\n' "$*" >> "$CALL_LOG"
+if [ "$1 $2 $3" = "plugin marketplace list" ]; then
+  case "${MKT_MODE:-local}" in
+    local)     printf 'Configured marketplaces:\n\n  ❯ racecraft-plugins-public\n    Source: Directory (%s)\n' "$STUB_REPO_ROOT" ;;
+    github)    printf 'Configured marketplaces:\n\n  ❯ racecraft-plugins-public\n    Source: GitHub (racecraft-lab/racecraft-plugins-public)\n' ;;
+    elsewhere) printf 'Configured marketplaces:\n\n  ❯ racecraft-plugins-public\n    Source: Directory (/some/other/checkout)\n' ;;
+    absent)    printf 'Configured marketplaces:\n\n  ❯ other-marketplace\n    Source: GitHub (a/b)\n' ;;
+    listfail)  echo "boom" >&2; exit 7 ;;
+  esac
+  exit 0
+fi
+if [ "$1 $2" = "plugin uninstall" ]; then
+  [ -n "${UNINSTALL_MSG:-}" ] && printf '%s\n' "$UNINSTALL_MSG" >&2
+  exit "${UNINSTALL_RC:-0}"
+fi
+exit 0
+STUB
+chmod +x "$FSTUB/claude"
+
+cat > "$FSTUB/codex" <<'STUB'
+#!/usr/bin/env bash
+printf 'codex %s\n' "$*" >> "$CALL_LOG"
+if [ "$1 $2 $3" = "plugin marketplace list" ]; then
+  printf 'MARKETPLACE               ROOT\nracecraft-plugins-public  %s\n' "$STUB_REPO_ROOT"
+  exit 0
+fi
+if [ "$1 $2" = "plugin remove" ]; then
+  [ -n "${REMOVE_MSG:-}" ] && printf '%s\n' "$REMOVE_MSG" >&2
+  exit "${REMOVE_RC:-0}"
+fi
+exit 0
+STUB
+chmod +x "$FSTUB/codex"
+
+run_claude_refresh() { # extra env passed as VAR=val args; runs claude-only refresh
+  env "$@" CALL_LOG="$CALL_LOG" STUB_REPO_ROOT="$REPO_ROOT" PATH="$FSTUB:$PATH" \
+    bash "$SCRIPT" --no-build --no-validate --no-codex --claude-install 2>&1
+}
+
+set_test "benign 'not found' uninstall still proceeds to install"
+: > "$CALL_LOG"
+result=0
+output=$(run_claude_refresh UNINSTALL_RC=1 UNINSTALL_MSG='Plugin "speckit-pro@racecraft-plugins-public" not found in installed plugins') || result=$?
+assert_eq "0" "$result" "exit code"
+assert_contains "$output" "/reload-plugins" "benign uninstall failure should not abort"
+calls=$(cat "$CALL_LOG")
+assert_contains "$calls" "claude plugin install speckit-pro@racecraft-plugins-public" "should still install after benign uninstall failure"
+
+set_test "non-benign uninstall failure aborts with its output"
+: > "$CALL_LOG"
+result=0
+output=$(run_claude_refresh UNINSTALL_RC=1 UNINSTALL_MSG='Error: permission denied writing plugin cache') || result=$?
+assert_eq "1" "$result" "exit code"
+assert_contains "$output" "permission denied writing plugin cache" "should echo the captured CLI error"
+assert_contains "$output" "failed to uninstall" "should abort on a non-benign uninstall failure"
+
+set_test "marketplace present as a non-local source aborts clearly"
+: > "$CALL_LOG"
+result=0
+output=$(run_claude_refresh MKT_MODE=github) || result=$?
+assert_eq "1" "$result" "exit code"
+assert_contains "$output" "not a local Directory source" "should explain the non-local marketplace"
+
+set_test "marketplace pointing at another checkout aborts"
+: > "$CALL_LOG"
+result=0
+output=$(run_claude_refresh MKT_MODE=elsewhere) || result=$?
+assert_eq "1" "$result" "exit code"
+assert_contains "$output" "points at '/some/other/checkout'" "should report the unexpected root"
+
+set_test "absent marketplace is added"
+: > "$CALL_LOG"
+result=0
+output=$(run_claude_refresh MKT_MODE=absent) || result=$?
+assert_eq "0" "$result" "exit code"
+calls=$(cat "$CALL_LOG")
+assert_contains "$calls" "claude plugin marketplace add" "absent marketplace should be added"
+
+set_test "marketplace inspection failure aborts"
+: > "$CALL_LOG"
+result=0
+output=$(run_claude_refresh MKT_MODE=listfail) || result=$?
+assert_eq "1" "$result" "exit code"
+assert_contains "$output" "failed to inspect" "list failure should abort before mutating state"
+
+set_test "non-benign Codex remove failure aborts"
+: > "$CALL_LOG"
+result=0
+output=$(env REMOVE_RC=1 REMOVE_MSG='Error: disk failure' CALL_LOG="$CALL_LOG" STUB_REPO_ROOT="$REPO_ROOT" PATH="$FSTUB:$PATH" \
+  bash "$SCRIPT" --no-build --no-validate --codex --no-claude-install 2>&1) || result=$?
+assert_eq "1" "$result" "exit code"
+assert_contains "$output" "failed to remove" "non-benign Codex remove failure should abort"
+
 section "Argument validation"
 
 set_test "invalid scope exits with usage error"

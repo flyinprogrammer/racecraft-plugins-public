@@ -197,32 +197,47 @@ validate_claude_payload() {
   run_cmd claude plugin validate "$(claude_payload_dir)"
 }
 
+# Prints the local Directory root for $MARKETPLACE (empty when the marketplace
+# is absent). Exit status distinguishes the cases the caller must handle:
+#   0 = absent, or present as a local Directory (root printed)
+#   2 = present but NOT a local Directory source (e.g. a GitHub source)
+#   1 = could not list the marketplaces
+# The listing is captured first rather than piped into awk, so an early awk
+# exit cannot SIGPIPE the CLI into a false failure under `set -o pipefail`.
 claude_marketplace_root() {
-  claude plugin marketplace list | awk -v name="$MARKETPLACE" '
+  local listing
+  listing="$(claude plugin marketplace list)" || return 1
+  awk -v name="$MARKETPLACE" '
     # Match the marketplace-name row exactly, tolerant of the leading
     # selection marker (ASCII ">" or unicode "❯") and surrounding whitespace.
     $0 ~ "^[^[:alnum:]]*" name "[[:space:]]*$" { found=1; next }
-    found && /^[[:space:]]*Source: Directory \(/ {
+    found == 1 && /^[[:space:]]*Source: Directory \(/ {
       sub(/^[[:space:]]*Source: Directory \(/, "")
       sub(/\)[[:space:]]*$/, "")
       print
-      exit
+      found = 2
+      exit 0
     }
-    found && /^[[:space:]]*Source:/ { exit }
-  '
+    found == 1 && /^[[:space:]]*Source:/ { found = 2; exit 2 }
+    END { if (found == 1) exit 2 }
+  ' <<<"$listing"
 }
 
 ensure_claude_marketplace_is_local() {
-  local root
+  local root rc
 
   if [ "$DRY_RUN" -eq 1 ]; then
     printf '+ claude plugin marketplace list # verify %s points at %q\n' "$MARKETPLACE" "$REPO_ROOT"
     return
   fi
 
-  if ! root="$(claude_marketplace_root)"; then
-    die "failed to inspect Claude marketplace list"
-  fi
+  rc=0
+  root="$(claude_marketplace_root)" || rc=$?
+  case "$rc" in
+    0) ;;
+    2) die "Claude marketplace '$MARKETPLACE' exists but is not a local Directory source. Remove it (claude plugin marketplace remove '$MARKETPLACE') before refreshing." ;;
+    *) die "failed to inspect Claude marketplace list" ;;
+  esac
 
   if [ "$root" = "$REPO_ROOT" ]; then
     return
@@ -259,15 +274,20 @@ refresh_claude_install() {
   echo "    Restart Claude Code or run /reload-plugins in an existing session."
 }
 
+# Prints the marketplace root for $MARKETPLACE (empty when absent); exits 1 if
+# the listing could not be obtained. Captured first to avoid a SIGPIPE-induced
+# false failure under `set -o pipefail` when awk exits early.
 codex_marketplace_root() {
-  codex plugin marketplace list | awk -v name="$MARKETPLACE" '
+  local listing
+  listing="$(codex plugin marketplace list)" || return 1
+  awk -v name="$MARKETPLACE" '
     $1 == name {
       root = $0
       sub(/^[[:space:]]*[^[:space:]]+[[:space:]]+/, "", root)
       print root
       exit
     }
-  '
+  ' <<<"$listing"
 }
 
 ensure_codex_marketplace_is_local() {
