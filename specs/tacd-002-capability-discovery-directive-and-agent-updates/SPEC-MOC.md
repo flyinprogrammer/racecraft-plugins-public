@@ -39,6 +39,7 @@ links to the slice artifacts in the body below.
 - [checklists/llm-integration.md](checklists/llm-integration.md)
 - [.process/changed-files.txt](.process/changed-files.txt)
 - [.process/emission/full-verification-evidence.md](.process/emission/full-verification-evidence.md)
+- [.process/final-reviewability/full-diff-gate.json](.process/final-reviewability/full-diff-gate.json)
 - [.process/final-reviewability/gate-state.json](.process/final-reviewability/gate-state.json)
 - [.process/marker-plan/final-marker-split-result.json](.process/marker-plan/final-marker-split-result.json)
 - [.process/marker-plan/hazard-route.json](.process/marker-plan/hazard-route.json)
