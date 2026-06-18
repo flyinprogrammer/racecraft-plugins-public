@@ -178,7 +178,9 @@ validate_layout() {
   [ -x "$REPO_ROOT/scripts/build-plugin-payloads.sh" ] || \
     die "build script not executable: $REPO_ROOT/scripts/build-plugin-payloads.sh"
 
-  if [ "$RUN_BUILD" -eq 0 ] || [ "$DRY_RUN" -eq 1 ]; then
+  # Only require pre-existing payloads when we skip the build AND actually run.
+  # In --dry-run we just print commands, so missing payloads must not abort.
+  if [ "$RUN_BUILD" -eq 0 ] && [ "$DRY_RUN" -eq 0 ]; then
     [ -d "$(claude_payload_dir)" ] || die "Claude payload not found: $(claude_payload_dir)"
     [ -d "$(codex_payload_dir)" ] || die "Codex payload not found: $(codex_payload_dir)"
   fi

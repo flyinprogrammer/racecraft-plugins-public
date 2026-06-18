@@ -46,6 +46,12 @@ assert_eq "0" "$result" "exit code"
 assert_not_contains "$output" "plugin uninstall" "--no-claude-install should skip Claude uninstall"
 assert_not_contains "$output" "codex plugin remove" "--no-codex should skip Codex remove"
 
+set_test "dry-run does not require generated payloads to exist"
+result=0
+output=$(SPECKIT_PLUGIN_NAME="plugin-without-payloads" bash "$SCRIPT" --dry-run 2>&1) || result=$?
+assert_eq "0" "$result" "exit code"
+assert_not_contains "$output" "payload not found" "dry-run should not abort on missing payloads"
+
 set_test "dry-run all prints refresh commands without requiring real CLI state"
 FAIL_BIN="$TMP_ROOT/fail-bin"
 mkdir -p "$FAIL_BIN"
