@@ -1,40 +1,46 @@
 {
   "schemaVersion": 1,
-  "workflow_file": "docs/ai/specs/.process/DOC-008-workflow.md",
+  "workflow_file": "docs/ai/specs/.process/DOC-009-workflow.md",
   "workflow_files": [
-    "docs/ai/specs/.process/DOC-008-workflow.md"
+    "docs/ai/specs/.process/DOC-009-workflow.md"
   ],
-  "feature_dir": "specs/doc-008-troubleshooting-security-trust-update-rollback",
+  "feature_dir": "specs/doc-009-maintainer-contributor-release-workflow",
   "feature_dirs": [
-    "specs/doc-008-troubleshooting-security-trust-update-rollback"
+    "specs/doc-009-maintainer-contributor-release-workflow"
   ],
-  "feature_branch": "doc-008-troubleshooting-security-trust-update-rollback",
-  "updated_at": "2026-06-18T04:50:48Z",
-  "active_step": "Complete",
+  "feature_branch": "doc-009-maintainer-contributor-release-workflow",
+  "updated_at": "2026-06-18T02:42:08Z",
+  "active_step": "Post: Retrospective",
   "status": "completed",
   "confidence_gate_mode": "advisory",
+  "execution_notes": {
+    "agent_runner_fallback": "Phase 3 Plan was executed locally after RepoPrompt agent transport returned Transport closed for list, bind, and agent-management calls. Required phase prompt, setup script, gate validation, and artifact updates were still followed."
+  },
+  "model_prerequisites": {
+    "orchestrator": "Current session is not a mini, fast, Spark, or reduced-capability tier in visible context.",
+    "available_model": "gpt-5.5 is available in Codex subagent registry.",
+    "required_agents": "SpecKit Pro subagents are installed and pinned to gpt-5.5 with model_reasoning_effort=xhigh."
+  },
   "archive_sweep": {
     "status": "completed",
     "archive_extension_installed": true,
     "cleanup_mode": "feature-branch-sweep",
-    "current_target": "specs/doc-008-troubleshooting-security-trust-update-rollback",
-    "excluded_current_spec": "specs/doc-008-troubleshooting-security-trust-update-rollback",
-    "eligible_previous_specs": [],
-    "active_non_current_specs": [],
+    "current_target": "specs/doc-009-maintainer-contributor-release-workflow",
+    "excluded_current_spec": "specs/doc-009-maintainer-contributor-release-workflow",
+    "eligible_previous_specs": [
+      "specs/tacd-001-platform-mechanics-spike"
+    ],
     "safeToApplyCleanup": false,
     "dryRunProvenanceOnly": true,
-    "notes": "Archive command is extension/skill-document based rather than a specify CLI subcommand in this Codex surface. Static sweep found only the current DOC-008 target; TACD-001 was archived on main, so no DOC-008 cleanup was applied."
+    "notes": "Archive extension is installed and enabled. Startup sweep excluded DOC-009 and did not apply cleanup. TACD-001 is already archived on origin/main but still present in this feature branch, so it was reported only."
   },
   "prerequisites": {
     "status": "completed",
     "speckit_cli": "specify 0.10.3.dev0",
-    "branch": "doc-008-troubleshooting-security-trust-update-rollback",
+    "branch": "doc-009-maintainer-contributor-release-workflow",
     "is_worktree": true,
+    "on_feature_branch": false,
     "required_codex_agents": "installed in user-scoped Codex agents directory",
-    "optional_codex_agents": {
-      "autopilot-fast-helper": "installed",
-      "uat-runbook-author": "bundled but not installed as a spawnable Codex role; UAT authoring is fail-open if unavailable"
-    },
     "mcp_servers": "Some MCP servers not configured; agents will use built-in fallbacks.",
     "project_commands": {
       "BUILD": "N/A",
@@ -45,21 +51,26 @@
       "INTEGRATION_TEST": "N/A",
       "SINGLE_FILE_TEST": "N/A",
       "SINGLE_FILE_INTEGRATION": "N/A",
-      "FULL_VERIFY": "N/A"
+      "FULL_VERIFY": "N/A",
+      "DOCS_REFERENCE_CHECK": "pnpm --dir docs-site reference:check",
+      "DOCS_VALIDATE": "pnpm --dir docs-site validate",
+      "RELEASE_READINESS": "bash tests/speckit-pro/run-all.sh"
     },
     "preset": "speckit-pro-reviewability",
-    "model_check": "Parent config uses gpt-5.5 with model_reasoning_effort=xhigh; required SpecKit Pro subagents are installed with gpt-5.5/xhigh.",
-    "validation_baseline": {
-      "reference_check": "passed",
-      "docs_validate": "passed after docs-site dependency install",
-      "validate_links": "passed",
-      "dependency_install": "pnpm --dir docs-site install required approved network access after sandbox DNS ENOTFOUND"
-    }
+    "extensions": [
+      "archive",
+      "git",
+      "verify",
+      "verify-tasks",
+      "retrospective",
+      "speckit-utils"
+    ]
   },
   "plan": [
     {
       "step": "Archive Sweep: previously merged specs dry-run/apply eligibility",
-      "status": "completed"
+      "status": "completed",
+      "summary": "Archive extension v1.1.0 enabled; current target excluded; TACD-001 reported as previously archived but not cleaned in this feature branch; cleanup not applied."
     },
     {
       "step": "Phase 0: Prerequisites",
@@ -70,246 +81,231 @@
       "status": "completed",
       "gate": "G1",
       "gate_status": "passed",
-      "summary": "Created spec.md with 3 user stories, 17 functional requirements, 9 acceptance scenarios, and 0 clarification markers."
+      "summary": "Created spec.md with 4 user stories, 15 functional requirements, 6 DOC-009 acceptance criteria, 8 acceptance scenarios, and 0 clarification markers."
     },
     {
-      "step": "Phase 2: Clarify - IA and Route Boundaries",
+      "step": "Phase 2: Clarify - Page Structure",
       "status": "completed",
-      "summary": "Answered 4 IA/route questions. Route/sidebar already resolved; consensus clarified that DOC-008 should link from hand-authored reference pages unless it explicitly changes the reference generator."
+      "summary": "Accepted consolidated release-readiness command block, sparse generated-reference links, docs-site-only validation trigger for docs-site files, and classification-first page order."
     },
     {
-      "step": "Phase 2: Clarify - IA and Route Boundaries Consensus",
+      "step": "Phase 2: Clarify - Page Structure Consensus",
       "status": "completed",
-      "round": 1,
-      "outcome": "both-agree",
-      "summary": "Codebase and spec-context analysts agreed with high confidence that generated DOC-007 reference subpages should not receive hand-edited DOC-008 backlinks."
+      "summary": "No unresolved consensus items."
     },
     {
-      "step": "Phase 2: Clarify - Troubleshooting Matrix",
+      "step": "Phase 2: Clarify - Source-Fact Boundaries",
       "status": "completed",
-      "summary": "Answered 5 troubleshooting matrix questions. Security-tagged consensus and user confirmation made row categories explicit and restricted inspect command/file cells to read-only inspection guidance."
+      "summary": "Accepted primary-source citation rules, docs-only PR Checks wording, caveated release-dispatch wording, dual-manifest version hierarchy, and docs-site validation source boundaries."
     },
     {
-      "step": "Phase 2: Clarify - Troubleshooting Matrix Consensus",
+      "step": "Phase 2: Clarify - Source-Fact Boundaries Consensus",
       "status": "completed",
       "round": 1,
-      "outcome": "all-agree-human-confirmed",
-      "summary": "Codebase, spec-context, and domain-research analysts agreed with high confidence on explicit troubleshooting categories and read-only inspection boundaries; user accepted security-tagged edits."
+      "outcome": "3/3 and both-agree",
+      "summary": "Consensus resolved release-please PR workflow-event wording and version-field source hierarchy."
     },
     {
-      "step": "Phase 2: Clarify - Security, Trust, and Sources",
+      "step": "Phase 2: Clarify - Validation and DOC-010 Handoff",
       "status": "completed",
-      "summary": "Answered 5 security/trust/source-policy questions. Security-tagged consensus and user confirmation expanded the vendor citation inventory, tightened claim-specific evidence policy, and clarified cache/recovery boundaries."
+      "summary": "Accepted docs-site validation trigger, reference-check preflight, release-readiness suite expectation, mixed-change validation lanes, and DOC-010 CI hardening handoff."
     },
     {
-      "step": "Phase 2: Clarify - Security, Trust, and Sources Consensus",
+      "step": "Phase 2: Clarify - Validation and DOC-010 Handoff Consensus",
       "status": "completed",
-      "round": 1,
-      "outcome": "all-agree-human-confirmed",
-      "summary": "Codebase, spec-context, and domain-research analysts agreed with high confidence on the expanded citation set and cache wording; user accepted security-tagged edits."
-    },
-    {
-      "step": "Phase 2: Clarify - Update and Rollback Recovery",
-      "status": "completed",
-      "summary": "Answered 5 update/rollback recovery questions. Recovery cases now require checkpoint/action/side-effect/reload-source structure, and Codex installed state must use CLI JSON/runtime-observation wording rather than stable hardcoded cache-path claims."
-    },
-    {
-      "step": "Phase 2: Clarify - Update and Rollback Recovery Consensus",
-      "status": "completed",
-      "round": 1,
-      "outcome": "all-agree",
-      "summary": "Codebase, spec-context, and domain-research analysts agreed that hardcoded Codex cache paths are repository/plugin-owned local runtime evidence unless current OpenAI docs document the exact path."
+      "summary": "No unresolved consensus items."
     },
     {
       "step": "Phase 3: Plan",
       "status": "completed",
       "gate": "G3",
       "gate_status": "passed",
-      "summary": "Created plan.md, research.md, data-model.md, and quickstart.md. G3 passed with 0 unresolved markers; contracts omitted because DOC-008 has no API, CLI, schema, or generated data artifact."
+      "budget_status": "pass",
+      "projected_production_loc": 0,
+      "summary": "Created plan.md, research.md, and quickstart.md; skipped data model and contracts as unnecessary for a docs-only route update."
     },
     {
-      "step": "Phase 4: Checklist - UX",
+      "step": "Phase 4: Checklist - documentation-ia",
       "status": "completed",
-      "summary": "Generated UX checklist with 14 items. Remediated 1 gap by adding hand-authored reference.md handoff scope; 0 gaps remain."
+      "items": 11,
+      "gaps": 0,
+      "summary": "Checklist created with route ownership, page shape, generated-reference, and DOC-010 handoff checks."
     },
     {
-      "step": "Phase 4: Checklist - UX Consensus",
+      "step": "Phase 4: Checklist - documentation-ia Consensus",
       "status": "completed",
-      "outcome": "not-needed",
-      "summary": "UX checklist executor reported no unresolved consensus items."
+      "summary": "No unresolved consensus items."
     },
     {
-      "step": "Phase 4: Checklist - Security",
+      "step": "Phase 4: Checklist - release-process-accuracy",
       "status": "completed",
-      "summary": "Generated security checklist with 18 items. Remediated 1 gap by making browser permission/workflow boundaries explicit; 0 gaps remain."
+      "items": 10,
+      "gaps": 0,
+      "summary": "Checklist created with source-citation, payload, marketplace, version, and release automation checks."
     },
     {
-      "step": "Phase 4: Checklist - Security Consensus",
+      "step": "Phase 4: Checklist - release-process-accuracy Consensus",
       "status": "completed",
-      "outcome": "not-needed",
-      "summary": "Security checklist executor reported no unresolved consensus items."
+      "summary": "No unresolved consensus items."
     },
     {
-      "step": "Phase 4: Checklist - Error Handling",
+      "step": "Phase 4: Checklist - ci-validation",
       "status": "completed",
-      "summary": "Generated error-handling checklist with 18 items. No substantive spec or plan gaps found; 0 gaps remain."
+      "items": 9,
+      "gaps": 0,
+      "summary": "Checklist created with PR Checks, docs-site validation, release-readiness, and DOC-010 CI-boundary checks."
     },
     {
-      "step": "Phase 4: Checklist - Error Handling Consensus",
+      "step": "Phase 4: Checklist - ci-validation Consensus",
       "status": "completed",
-      "outcome": "not-needed",
-      "summary": "Error Handling checklist executor reported no unresolved consensus items."
+      "summary": "No unresolved consensus items."
     },
     {
-      "step": "Phase 4: Checklist - Accessibility",
+      "step": "Phase 4: Checklist - reviewer-usability",
       "status": "completed",
-      "summary": "Generated accessibility checklist with 18 items. Remediated 4 gaps for semantic matrix headers, readable row/case labels, stable headings/descriptive link text, and static Markdown success criteria; 0 gaps remain."
+      "items": 9,
+      "gaps": 0,
+      "summary": "Checklist created with contributor, maintainer, and reviewer PR metadata checks."
     },
     {
-      "step": "Phase 4: Checklist - Accessibility Consensus",
+      "step": "Phase 4: Checklist - reviewer-usability Consensus",
       "status": "completed",
-      "outcome": "not-needed",
-      "summary": "Accessibility checklist executor reported no unresolved consensus items."
+      "summary": "No unresolved consensus items."
     },
     {
       "step": "Phase 5: Tasks",
       "status": "completed",
       "gate": "G5",
       "gate_status": "passed",
-      "summary": "Created tasks.md with 40 story-ordered docs tasks across 6 phases, 8 parallel-safe markers, and explicit validation/source-citation review tasks."
+      "task_count": 23,
+      "atomicity_route": {
+        "route": "one-navigable-PR",
+        "releasable": true,
+        "signals": [
+          "change-shape:modify-heavy"
+        ],
+        "hints": [
+          "hint:flag-system:weak"
+        ],
+        "warnings": []
+      },
+      "summary": "Generated 23 tasks across setup/source audit, US1, US2, US3, US4, and polish/validation."
     },
     {
       "step": "Phase 6: Analyze",
       "status": "completed",
       "gate": "G6",
       "gate_status": "passed",
-      "summary": "Analyze found 1 medium AC traceability gap in tasks.md and remediated it by mapping PRD AC-8.1 through AC-8.6 to user stories and task IDs; 0 findings remain."
+      "findings": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+      },
+      "confidence": {
+        "composite": 0.96,
+        "task_understanding": 0.95,
+        "approach_clarity": 0.95,
+        "requirements_alignment": 0.95,
+        "risk_assessment": 1.0,
+        "completeness": 0.95
+      },
+      "summary": "Analyze pass found complete AC coverage, no Grill Me drift, no scope boundary violations, and no CRITICAL/HIGH/MEDIUM/LOW findings."
     },
     {
       "step": "Phase 6: Analyze - Consensus",
       "status": "completed",
-      "outcome": "not-needed",
-      "summary": "Analyze executor reported no unresolved consensus items."
+      "summary": "No unresolved consensus items."
     },
     {
       "step": "Phase 6.5: Confidence Gate",
       "status": "completed",
       "mode": "advisory",
-      "outcome": "soft_skip",
-      "summary": "No synthesizer confidence emit was present in the workflow file; advisory confidence gate soft-skipped. Atomicity classifier returned one-navigable-PR, releasable true, no warnings."
+      "threshold": 0.9,
+      "pass": true,
+      "recommended_action": "proceed",
+      "summary": "Confidence gate passed with composite 0.96 against threshold 0.90."
     },
     {
-      "step": "Phase 7: Implement - Pending task decomposition",
-      "status": "completed",
-      "summary": "Task decomposition completed in tasks.md with setup, foundation, US1, US2, US3, and polish phases."
-    },
-    {
-      "step": "Phase 7: Implement - Setup and Foundation",
-      "status": "completed",
-      "summary": "Reviewed DOC-008 file operations, route shells, sidebar placement, source inventory, generated DOC-007 references, validation commands, and scope guard."
-    },
-    {
-      "step": "Phase 7: Implement - User Story 1 Troubleshooting",
-      "status": "completed",
-      "summary": "Expanded troubleshooting.md into a source-cited symptom matrix with platform labels, read-only inspection guidance, safe recovery handoffs, and support anchors."
-    },
-    {
-      "step": "Phase 7: Implement - User Story 2 Security and Trust",
-      "status": "completed",
-      "summary": "Expanded security-and-trust.md with official vendor behavior, Racecraft repository facts, recommended-practice boundaries, evaluator checklist, and no-audit/no-certification positioning."
-    },
-    {
-      "step": "Phase 7: Implement - User Story 3 Update and Rollback",
-      "status": "completed",
-      "summary": "Added update-and-rollback.md with recovery cases for update, refresh, reinstall, remove, rollback, stale payload, stale cache, and version sync."
-    },
-    {
-      "step": "Phase 7: Implement - Polish and Validation",
+      "step": "Phase 7: Implement",
       "status": "completed",
       "gate": "G7",
       "gate_status": "passed",
-      "summary": "Added sidebar/install/reference handoffs, marked all 40 tasks complete, updated one weak source citation, and reran docs validation. G7 passed with 40/40 tasks complete."
+      "summary": "Implemented DOC-009 as a docs-only route update, completed all 23 tasks, recorded validation evidence, and passed G7 with all 23 tasks complete."
     },
     {
       "step": "Post: Doctor Extension Check",
-      "status": "skipped",
-      "summary": "No runnable Codex doctor command was registered. speckit-utils is enabled in .specify/extensions/.registry but registered only for Claude command files."
+      "status": "completed",
+      "summary": "Fallback parent-session health check passed: templates present, Claude commands registered, scripts executable, constitution present, and feature artifacts present."
     },
     {
       "step": "Post: Verify Implementation",
-      "status": "skipped",
-      "summary": "$speckit-verify is registered only for Claude in this worktree; no runnable Codex command or skill was available."
+      "status": "completed",
+      "summary": "Fallback parent-session verification found 23/23 tasks complete, 15/15 functional requirements covered, and no constitution or scope-boundary findings."
     },
     {
       "step": "Post: Verify Tasks Phantom Check",
-      "status": "skipped",
-      "summary": "$speckit-verify-tasks is registered only for Claude in this worktree; no runnable Codex command or skill was available. G7 separately confirmed 40/40 tasks complete."
+      "status": "completed",
+      "report": "specs/doc-009-maintainer-contributor-release-workflow/verify-tasks-report.md",
+      "summary": "Report records 23 VERIFIED tasks and no flagged items."
     },
     {
       "step": "Post: Code Review",
-      "status": "completed",
-      "summary": "Subagent review found the new route file was untracked and one Spec Kit CLI row citation was weak. The route file will be staged and the citation was updated to scripts evidence."
+      "status": "skipped",
+      "reason": "review extension not installed and no review command surface found"
     },
     {
       "step": "Post: Integration Suite",
       "status": "completed",
-      "summary": "Passed pnpm --dir docs-site reference:check, pnpm --dir docs-site validate, pnpm --dir docs-site validate:links, git diff --check, and G7."
+      "summary": "bash tests/speckit-pro/run-all.sh passed with 3041/3041."
     },
     {
       "step": "Post: Cleanup",
       "status": "skipped",
-      "summary": "No runnable Codex cleanup extension command was installed."
+      "reason": "cleanup extension not installed and no cleanup command surface found"
     },
     {
       "step": "Post: Reviewability Diff Gate",
       "status": "completed",
-      "summary": "Final reviewability backstop proceeded with status warn: total files 25 exceeds warn threshold 15 and primary surfaces 4 exceeds warn threshold 1; no blockers remained after keeping UAT evidence transient."
+      "gate_status": "warn",
+      "summary": "Final reviewability backstop returned warn with no blockers: total files 20 exceeded warn threshold 15 and primary surfaces 3 exceeded warn threshold 1; production LOC remained 0.",
+      "evidence": "specs/doc-009-maintainer-contributor-release-workflow/.process/final-reviewability/gate-state.json"
     },
     {
       "step": "Post: Self-Review",
       "status": "completed",
-      "summary": "Parent self-review found no unresolved markers, unsafe cache-default guidance, or generated reference subpage edits."
+      "summary": "Parent-session self-review found the generated PR packet protected body was generic; actual PR body was prepared separately with DOC-009-specific content."
     },
     {
       "step": "Post: UAT Runbook Generation",
       "status": "completed",
-      "summary": "Generated a DOC-008 UAT skeleton during post checks. The file is regenerated transiently for PR body generation rather than committed, keeping the final diff within reviewability limits."
+      "summary": "Manual UAT not required for docs-only DOC-009; docs-site validation and full shell suite provide verification evidence."
     },
     {
       "step": "Post: PR Body Generation",
       "status": "completed",
-      "summary": "Generated transient PR packet/body, edited sanctioned DOC-008 prose fields, validated packet successfully, and passed validate-pr-workflow-contract with title docs(DOC-008): Add troubleshooting, Security, Trust, Update, and Rollback."
+      "summary": "Generated and validated Speckit PR packet/body, then prepared DOC-009-specific PR body at /private/tmp/doc-009-pr-body.md because generated protected sections were generic packet text.",
+      "packet": "specs/doc-009-maintainer-contributor-release-workflow/.process/pr-packet/speckit-pr-packet.json"
     },
     {
       "step": "Post: PR Creation",
       "status": "completed",
-      "summary": "Created PR #220: https://github.com/racecraft-lab/racecraft-plugins-public/pull/220."
+      "pr": {
+        "url": "https://github.com/racecraft-lab/racecraft-plugins-public/pull/219",
+        "draft": true,
+        "title": "docs(DOC-009): document maintainer contributor release workflow"
+      }
     },
     {
       "step": "Post: Review Remediation",
       "status": "completed",
-      "summary": "PR was newly created with no review feedback or requested changes to remediate."
+      "summary": "No review feedback existed at PR creation time."
     },
     {
       "step": "Post: Retrospective",
-      "status": "skipped",
-      "summary": "Retrospective extension is registered only for Claude in this worktree; no runnable Codex retrospective command or skill was available."
+      "status": "completed",
+      "report": "specs/doc-009-maintainer-contributor-release-workflow/retrospective.md",
+      "summary": "Retrospective report records 100% completion, 100% spec adherence, and zero critical findings."
     }
-  ],
-  "plan_audit": {
-    "required_prefixes": [
-      "Archive Sweep:",
-      "Phase 0:",
-      "Phase 1:",
-      "Phase 2:",
-      "Phase 3:",
-      "Phase 4:",
-      "Phase 5:",
-      "Phase 6:",
-      "Phase 7:",
-      "Post:"
-    ],
-    "coverage": "complete",
-    "in_progress_count": 0
-  }
+  ]
 }
