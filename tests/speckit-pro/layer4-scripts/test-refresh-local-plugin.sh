@@ -144,10 +144,11 @@ cat > "$FSTUB/claude" <<'STUB'
 #!/usr/bin/env bash
 printf 'claude %s\n' "$*" >> "$CALL_LOG"
 if [ "$1 $2 $3" = "plugin marketplace list" ]; then
+  n="${MKT_NAME:-racecraft-plugins-public}"
   case "${MKT_MODE:-local}" in
-    local)     printf 'Configured marketplaces:\n\n  ❯ racecraft-plugins-public\n    Source: Directory (%s)\n' "$STUB_REPO_ROOT" ;;
-    github)    printf 'Configured marketplaces:\n\n  ❯ racecraft-plugins-public\n    Source: GitHub (racecraft-lab/racecraft-plugins-public)\n' ;;
-    elsewhere) printf 'Configured marketplaces:\n\n  ❯ racecraft-plugins-public\n    Source: Directory (/some/other/checkout)\n' ;;
+    local)     printf 'Configured marketplaces:\n\n  ❯ %s\n    Source: Directory (%s)\n' "$n" "$STUB_REPO_ROOT" ;;
+    github)    printf 'Configured marketplaces:\n\n  ❯ %s\n    Source: GitHub (racecraft-lab/%s)\n' "$n" "$n" ;;
+    elsewhere) printf 'Configured marketplaces:\n\n  ❯ %s\n    Source: Directory (/some/other/checkout)\n' "$n" ;;
     absent)    printf 'Configured marketplaces:\n\n  ❯ other-marketplace\n    Source: GitHub (a/b)\n' ;;
     listfail)  echo "boom" >&2; exit 7 ;;
   esac
@@ -234,6 +235,31 @@ output=$(env REMOVE_RC=1 REMOVE_MSG='Error: disk failure' CALL_LOG="$CALL_LOG" S
   bash "$SCRIPT" --no-build --no-validate --codex --no-claude-install 2>&1) || result=$?
 assert_eq "1" "$result" "exit code"
 assert_contains "$output" "failed to remove" "non-benign Codex remove failure should abort"
+
+set_test "marketplace name with regex metacharacters matches its row literally"
+: > "$CALL_LOG"
+result=0
+output=$(env SPECKIT_MARKETPLACE='my+plug-mkt' MKT_NAME='my+plug-mkt' \
+  CALL_LOG="$CALL_LOG" STUB_REPO_ROOT="$REPO_ROOT" PATH="$FSTUB:$PATH" \
+  bash "$SCRIPT" --no-build --no-validate --no-codex --claude-install 2>&1) || result=$?
+assert_eq "0" "$result" "exit code"
+assert_not_contains "$output" "Adding Claude marketplace" "metachar name should match its existing local row, not look absent"
+calls=$(cat "$CALL_LOG")
+assert_contains "$calls" "speckit-pro@my+plug-mkt" "should act on the metachar-named selector"
+
+set_test "missing claude skips validation instead of aborting a Codex-only run"
+: > "$CALL_LOG"
+CODEX_ONLY="$TMP_ROOT/codex-only"
+mkdir -p "$CODEX_ONLY"
+cp "$FSTUB/codex" "$CODEX_ONLY/codex"
+result=0
+# PATH excludes the real claude binary but retains coreutils (awk, bash, ...).
+output=$(CALL_LOG="$CALL_LOG" STUB_REPO_ROOT="$REPO_ROOT" PATH="$CODEX_ONLY:/usr/bin:/bin" \
+  bash "$SCRIPT" --no-build --codex --no-claude-install 2>&1) || result=$?
+assert_eq "0" "$result" "exit code"
+assert_contains "$output" "skipping Claude payload validation" "missing claude should skip validation with a warning"
+calls=$(cat "$CALL_LOG")
+assert_contains "$calls" "codex plugin add speckit-pro@racecraft-plugins-public" "Codex refresh should still run without claude"
 
 section "Argument validation"
 

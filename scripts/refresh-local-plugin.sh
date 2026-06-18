@@ -192,7 +192,14 @@ build_payloads() {
 }
 
 validate_claude_payload() {
-  require_cmd claude
+  # Validation is Claude-specific. If the Claude CLI is absent, skip it with a
+  # warning rather than aborting a run that may only target Codex. A run that
+  # actually needs Claude (install/launch) still fails later via require_cmd.
+  # In --dry-run we print the command without requiring the CLI.
+  if [ "$DRY_RUN" -eq 0 ] && ! command -v claude >/dev/null 2>&1; then
+    echo "warning: 'claude' not found; skipping Claude payload validation (pass --no-validate to silence)." >&2
+    return
+  fi
   echo "==> Validating Claude Code payload ..."
   run_cmd claude plugin validate "$(claude_payload_dir)"
 }
@@ -208,9 +215,12 @@ claude_marketplace_root() {
   local listing
   listing="$(claude plugin marketplace list)" || return 1
   awk -v name="$MARKETPLACE" '
-    # Match the marketplace-name row exactly, tolerant of the leading
-    # selection marker (ASCII ">" or unicode "❯") and surrounding whitespace.
-    $0 ~ "^[^[:alnum:]]*" name "[[:space:]]*$" { found=1; next }
+    # Strip the leading selection marker (ASCII ">" or unicode "❯") and
+    # surrounding whitespace, then compare the row to the marketplace name as a
+    # literal string. A literal compare (not a regex match on $MARKETPLACE)
+    # avoids treating regex metacharacters in the name as pattern syntax.
+    { row = $0; sub(/^[^[:alnum:]]*/, "", row); sub(/[[:space:]]*$/, "", row) }
+    row == name { found = 1; next }
     found == 1 && /^[[:space:]]*Source: Directory \(/ {
       sub(/^[[:space:]]*Source: Directory \(/, "")
       sub(/\)[[:space:]]*$/, "")
