@@ -1,4 +1,5 @@
 docs/ai/specs/.process/TACD-002-workflow.md
 specs/tacd-002-capability-discovery-directive-and-agent-updates/.process/changed-files.txt
 specs/tacd-002-capability-discovery-directive-and-agent-updates/.process/emission/full-verification-evidence.md
+specs/tacd-002-capability-discovery-directive-and-agent-updates/.process/final-reviewability/gate-state.json
 specs/tacd-002-capability-discovery-directive-and-agent-updates/.process/marker-plan/final-marker-split-result.json
