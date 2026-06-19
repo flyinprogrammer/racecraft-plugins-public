@@ -50,7 +50,7 @@ Re-read the design concept before each phase. It is the source of truth for setu
 | Checklist | `/speckit-checklist` | Complete | Accessibility, UX, reliability, and security remediation evidence was appended; original checklist prompts remain as audit records |
 | Tasks | `/speckit-tasks` | Complete | Generated 40 tasks; G5 passed; size-only task reviewability block persisted as marker-plan evidence |
 | Analyze | `/speckit-analyze` | Complete | G6 passed with 0 findings; no consensus remediation required |
-| Implement | `/speckit-implement` | Pending | Execute focused docs-site hardening with validation evidence |
+| Implement | `/speckit-implement` | In Progress | Foundation, search/deep-link, and accessibility markers complete; validation/CI and smoke evidence markers remain |
 
 ### Phase Gates
 
@@ -679,7 +679,7 @@ Follow the tasks in order. Use the design concept Q&A log for the reason behind 
 |-------|-------|-----------|-------|
 | Foundation | T001-T006 | Yes | Added docs-site validation scripts, Playwright dependency/config, initial six-route desktop/mobile smoke scaffold, and focused docs-quality validator. Parent verification passed for syntax, `validate:quality`, `validate:safe-aids`, Playwright test discovery, and `git diff --check`; full browser smoke awaits installed Playwright browser binaries. |
 | Search/deep links | T007-T013 | Yes | Added support-anchor inventory validation, source-update guidance checks, glossary definitions, install/support deep links, and refreshed generated reference pages. Parent verification passed for `pnpm --dir docs-site validate:quality`, `pnpm --dir docs-site reference:check`, and `git diff --check`. |
-| Accessibility/responsive | T014-T019 | Yes | Added DOC-010 safe-aids guardrails, accessible interactive-aid semantics, keyboard/status/fallback hardening, and manual evidence in quickstart. Parent verification passed for `pnpm --dir docs-site validate:safe-aids`, `pnpm --dir docs-site validate:quality`, and `git diff --check`. |
+| Accessibility/responsive | T014-T019 | Yes | Hardened safe install aid guardrails, static fallback copy, lifecycle semantic/focus/reflow behavior, and reviewer-visible accessibility evidence. Parent verification passed for `pnpm --dir docs-site validate:safe-aids`, `pnpm --dir docs-site validate:quality`, `pnpm --dir docs-site check`, and `git diff --check`. |
 | Docs validation/CI | | | |
 | Playwright smoke | | | |
 | Polish | | | |
