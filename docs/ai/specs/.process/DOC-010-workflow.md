@@ -50,7 +50,7 @@ Re-read the design concept before each phase. It is the source of truth for setu
 | Checklist | `/speckit-checklist` | Complete | Accessibility, UX, reliability, and security remediation evidence was appended; original checklist prompts remain as audit records |
 | Tasks | `/speckit-tasks` | Complete | Generated 40 tasks; G5 passed; size-only task reviewability block persisted as marker-plan evidence |
 | Analyze | `/speckit-analyze` | Complete | G6 passed with 0 findings; no consensus remediation required |
-| Implement | `/speckit-implement` | In Progress | Foundation, search/deep-link, and accessibility markers complete; validation/CI and smoke evidence markers remain |
+| Implement | `/speckit-implement` | Complete | All 40 tasks complete; G7 passed with compact browser smoke and validation evidence |
 
 ### Phase Gates
 
@@ -545,12 +545,12 @@ Authoritative marker state is stored in `docs/ai/specs/.process/autopilot-state.
 | Field | Value |
 |-------|-------|
 | Schema version | `pr-marker-plan.v1` |
-| Status | `planned` |
+| Status | `emission_ready` |
 | Evidence path | `specs/doc-010-search-accessibility-deep-links-docs-validation/.process/reviewability/pr-marker-plan.json` |
 | Fingerprint status | current |
 | Ordered marker IDs | `foundation`, `us1`, `us2`, `us3`, `us4` |
 | Review order | foundation -> us1 -> us2 -> us3 -> us4 |
-| Marker checkpoints | `foundation` completed at `2f21220e`; `us1` completed at `147559bb`; `us2` completed at `a828f29a`; `us3` and `us4` pending |
+| Marker checkpoints | `foundation` completed at `2f21220e`; `us1` completed at `147559bb`; `us2` completed at `a828f29a`; `us3` completed at `0fc3f0c6`; `us4` completed at `63ac46f0` |
 | Final marker split | pending |
 | Packet validation | pending |
 | PR mappings | pending |
@@ -573,8 +573,8 @@ Source fingerprint:
 | `foundation` | 1 | T001-T006 | none | `2f21220e` |
 | `us1` | 2 | T007-T013 | none | `147559bb` |
 | `us2` | 3 | T014-T019 | none | `a828f29a` |
-| `us3` | 4 | T020-T027 | none | pending |
-| `us4` | 5 | T028-T033 | T034-T040 | pending |
+| `us3` | 4 | T020-T027 | none | `0fc3f0c6` |
+| `us4` | 5 | T028-T033 | T034-T040 | `63ac46f0` |
 
 ---
 
@@ -680,24 +680,44 @@ Follow the tasks in order. Use the design concept Q&A log for the reason behind 
 | Foundation | T001-T006 | Yes | Added docs-site validation scripts, Playwright dependency/config, initial six-route desktop/mobile smoke scaffold, and focused docs-quality validator. Parent verification passed for syntax, `validate:quality`, `validate:safe-aids`, Playwright test discovery, and `git diff --check`; full browser smoke awaits installed Playwright browser binaries. |
 | Search/deep links | T007-T013 | Yes | Added support-anchor inventory validation, source-update guidance checks, glossary definitions, install/support deep links, and refreshed generated reference pages. Parent verification passed for `pnpm --dir docs-site validate:quality`, `pnpm --dir docs-site reference:check`, and `git diff --check`. |
 | Accessibility/responsive | T014-T019 | Yes | Hardened safe install aid guardrails, static fallback copy, lifecycle semantic/focus/reflow behavior, and reviewer-visible accessibility evidence. Parent verification passed for `pnpm --dir docs-site validate:safe-aids`, `pnpm --dir docs-site validate:quality`, `pnpm --dir docs-site check`, and `git diff --check`. |
-| Docs validation/CI | | | |
-| Playwright smoke | | | |
-| Polish | | | |
+| Docs validation/CI | T020-T027 | Yes | Added command-chain enforcement for the DOC-010 validation path and a stable `validate-docs` PR Checks job with job-level changed-file detection, skip success, and preserved plugin matrix semantics. Parent verification passed for `pnpm --dir docs-site validate:quality`, `pnpm --dir docs-site reference:check`, `bash tests/speckit-pro/run-all.sh --layer 1`, `git diff --check`, and full `pnpm --dir docs-site validate` after installing Playwright Chromium and allowing localhost smoke. |
+| Playwright smoke | T028-T033 | Yes | Expanded browser smoke to 20 checks across desktop and mobile for the six DOC-010 routes, support search, representative deep links, SafeInstallAids, and LifecycleFlow; added the `docs-site-smoke-evidence` CI artifact upload with 7-day retention. Parent verification passed for `pnpm --dir docs-site validate:smoke`. |
+| Polish | T034-T040 | Yes | Completed final reference, quality, safe-aids, smoke, full docs validation, diff whitespace, Layer 1 structural validation, and PR packet evidence. Parent verification passed for `pnpm --dir docs-site validate`, `bash tests/speckit-pro/run-all.sh --layer 1`, and G7. |
+
+G7 output:
+
+```json
+{"gate":"G7","pass":true,"reason":"All 40 tasks complete","markers":0,"total":40,"done":40}
+```
 
 ---
 
 ## Post-Implementation Checklist
 
-- [ ] All tasks marked complete in `tasks.md`
-- [ ] `pnpm --dir docs-site reference:check`
-- [ ] `pnpm --dir docs-site validate`
-- [ ] DOC-010 focused validator command, if added
-- [ ] Minimal Playwright smoke command, if added
-- [ ] `git diff --check`
-- [ ] Relevant SpecKit Pro structural/workflow checks if workflow or scripts changed
-- [ ] Manual/browser accessibility and responsive review evidence recorded
+- [x] All tasks marked complete in `tasks.md`
+- [x] `pnpm --dir docs-site reference:check`
+- [x] `pnpm --dir docs-site validate`
+- [x] DOC-010 focused validator command, if added
+- [x] Minimal Playwright smoke command, if added
+- [x] `git diff --check`
+- [x] Relevant SpecKit Pro structural/workflow checks if workflow or scripts changed
+- [x] Manual/browser accessibility and responsive review evidence recorded
 - [ ] PR packet includes docs-site validation, Playwright/manual evidence, and source-backed summary
 - [ ] Roadmap and traceability records updated only after implementation is complete
+
+### Canonical Post Item Results
+
+| Post Item | Status | Evidence |
+| --- | --- | --- |
+| Doctor Extension Check | Complete | Doctor extension check completed in the resumed post track; project root, templates, Claude command registration, scripts, constitution, DOC-010 artifacts, and clean git state verified. |
+| Verify Implementation | Complete | `$speckit-verify` contract executed manually because Codex could not invoke the command directly; 13/13 FRs, 4/4 user stories, 11/11 scenarios, 40/40 tasks covered, 0 critical/high findings. |
+| Verify Tasks Phantom Check | Complete | `specs/doc-010-search-accessibility-deep-links-docs-validation/.process/verify-tasks-report.md` written; 40/40 completed tasks verified, 0 partial/weak/not-found/skipped, no flagged items. |
+| Code Review | Skipped | `review` extension is not installed; no `.registry` review entry and no `.claude`/`.codex` `$speckit-review` command found. |
+| Integration Suite | Complete | `pnpm --dir docs-site validate` passed including 20 Playwright smoke tests; `bash tests/speckit-pro/layer4-scripts/test-privacy-scan.sh` passed 9/9; `bash tests/speckit-pro/run-all.sh` passed 3128/3128; `git diff --check` passed. |
+| Cleanup | Skipped | Cleanup extension is not installed; only archive-extension cleanup references were found, and archive cleanup is separate post-merge behavior. |
+| Reviewability Diff Gate | In progress | Pending final `final-reviewability-backstop.sh` run before PR packet or marker emission. |
+
+Integration note: the first full `bash tests/speckit-pro/run-all.sh` pass failed privacy scan on slash-separated key wording in `quickstart.md`; wording was changed to `arrow, Home, and End`, targeted privacy scan passed, and the full suite passed 3128/3128 afterward.
 
 ---
 
