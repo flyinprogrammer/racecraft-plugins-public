@@ -550,7 +550,7 @@ Authoritative marker state is stored in `docs/ai/specs/.process/autopilot-state.
 | Fingerprint status | current |
 | Ordered marker IDs | `foundation`, `us1`, `us2`, `us3`, `us4` |
 | Review order | foundation -> us1 -> us2 -> us3 -> us4 |
-| Marker checkpoints | pending |
+| Marker checkpoints | `foundation` completed at `2f21220e`; remaining markers pending |
 | Final marker split | pending |
 | Packet validation | pending |
 | PR mappings | pending |
@@ -570,7 +570,7 @@ Source fingerprint:
 
 | Marker | Review order | Tasks | Folded polish tasks | Checkpoint |
 |--------|--------------|-------|---------------------|------------|
-| `foundation` | 1 | T001-T006 | none | pending |
+| `foundation` | 1 | T001-T006 | none | `2f21220e` |
 | `us1` | 2 | T007-T013 | none | pending |
 | `us2` | 3 | T014-T019 | none | pending |
 | `us3` | 4 | T020-T027 | none | pending |
@@ -678,7 +678,7 @@ Follow the tasks in order. Use the design concept Q&A log for the reason behind 
 | Phase | Tasks | Completed | Notes |
 |-------|-------|-----------|-------|
 | Foundation | T001-T006 | Yes | Added docs-site validation scripts, Playwright dependency/config, initial six-route desktop/mobile smoke scaffold, and focused docs-quality validator. Parent verification passed for syntax, `validate:quality`, `validate:safe-aids`, Playwright test discovery, and `git diff --check`; full browser smoke awaits installed Playwright browser binaries. |
-| Search/deep links | | | |
+| Search/deep links | T007-T013 | Yes | Added support-anchor inventory validation, source-update guidance checks, glossary definitions, install/support deep links, and refreshed generated reference pages. Parent verification passed for `pnpm --dir docs-site validate:quality`, `pnpm --dir docs-site reference:check`, and `git diff --check`. |
 | Accessibility/responsive | | | |
 | Docs validation/CI | | | |
 | Playwright smoke | | | |
