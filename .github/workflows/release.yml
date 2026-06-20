@@ -35,6 +35,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          # docs-site reference pages embed the plugin version, so the release
+          # branch needs them regenerated alongside the version bump (below).
+          corepack enable
+          corepack prepare pnpm@10.25.0 --activate
+
           release_prs="${RELEASE_PRS:-[]}"
           if [ -z "$release_prs" ] || [ "$release_prs" = "null" ]; then
             release_prs="[]"
@@ -68,12 +73,15 @@ jobs:
             git switch --detach "origin/${branch}"
 
             bash scripts/build-plugin-payloads.sh
+            bash scripts/sync-marketplace-versions.sh
+            # reference:generate is a pure node: built-in script — no node_modules needed.
+            pnpm --dir docs-site reference:generate
 
-            if git diff --quiet -- dist; then
+            if git diff --quiet -- dist .claude-plugin/marketplace.json .agents/plugins/marketplace.json docs-site/src/content/docs/reference; then
               echo "Payloads already current for PR #${pr_number}."
             else
-              git add dist
-              git commit -m "chore(speckit-pro): sync release payloads"
+              git add dist .claude-plugin/marketplace.json .agents/plugins/marketplace.json docs-site/src/content/docs/reference
+              git commit -m "chore(speckit-pro): sync release payloads, marketplace versions, and docs reference"
               git push origin "HEAD:${branch}"
             fi
 
@@ -95,50 +103,29 @@ jobs:
         if: steps.release.outputs['speckit-pro--release_created'] == 'true'
         run: bash scripts/sync-marketplace-versions.sh
 
-      - name: Open payload and marketplace sync PR
+      - name: Regenerate docs reference
         if: steps.release.outputs['speckit-pro--release_created'] == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@10.25.0 --activate
+          # reference:generate is a pure node: built-in script — no node_modules needed.
+          pnpm --dir docs-site reference:generate
+
+      - name: Verify release artifacts are consistent
+        if: steps.release.outputs['speckit-pro--release_created'] == 'true'
         run: |
           set -euo pipefail
 
-          if git diff --quiet -- dist .claude-plugin/marketplace.json .agents/plugins/marketplace.json; then
-            echo "No payload or marketplace sync changes."
+          # The release PR's payload-sync step already committed dist, marketplace
+          # versions, and the docs reference, so main is already consistent after
+          # the merge — there is intentionally NO separate follow-up sync PR.
+          # This step only VERIFIES that invariant and fails loudly if it drifts.
+          if git diff --quiet -- dist .claude-plugin/marketplace.json .agents/plugins/marketplace.json docs-site/src/content/docs/reference; then
+            echo "Release artifacts are consistent; the release PR carried the full sync. No follow-up PR needed."
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          version=$(jq -r '.version' speckit-pro/.claude-plugin/plugin.json)
-          sync_branch="release/sync-speckit-pro-v${version}"
-          sync_title="chore: sync plugin payloads and marketplace versions"
-
-          git switch -c "$sync_branch"
-          git add dist .claude-plugin/marketplace.json .agents/plugins/marketplace.json
-          git commit -m "$sync_title"
-          git push --force origin "HEAD:${sync_branch}"
-
-          body_file="$(mktemp)"
-          cat > "$body_file" <<'BODY'
-          ## Summary
-          - Sync generated plugin payloads and marketplace versions after a release.
-          - Created by the Release workflow because `main` is protected.
-
-          ## Validation
-          - `bash scripts/build-plugin-payloads.sh`
-          - `bash scripts/sync-marketplace-versions.sh`
-          BODY
-
-          pr_number=$(gh pr list \
-            --state open \
-            --base main \
-            --head "$sync_branch" \
-            --json number \
-            --jq '.[0].number // empty')
-
-          if [ -n "$pr_number" ]; then
-            gh pr edit "$pr_number" --title "$sync_title" --body-file "$body_file"
-          else
-            gh pr create --base main --head "$sync_branch" --title "$sync_title" --body-file "$body_file"
-          fi
+          echo "::error::Release artifacts drifted after publishing. The release PR's payload-sync step should have committed dist/, both marketplace.json files, and the docs reference, but a clean rebuild here differs — usually because the payload-sync step did not run on the release PR. Re-run the Release workflow (workflow_dispatch) to re-sync the release PR before merging next time. Drift:"
+          git --no-pager diff --stat -- dist .claude-plugin/marketplace.json .agents/plugins/marketplace.json docs-site/src/content/docs/reference
+          exit 1
