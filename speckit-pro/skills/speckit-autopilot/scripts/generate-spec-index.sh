@@ -308,8 +308,12 @@ render_prs() {
         | req_string("status") as $status
         | req_string("branch") as $branch
         | req_string("base_branch") as $base
-        | (if (.status == "merged" and (.merged_sha | type) == "string" and (.merged_sha | length) > 0)
-           then .merged_sha
+        | (if $status == "merged"
+           then
+             if ((.merged_sha | type) == "string" and (.merged_sha | length) > 0)
+             then .merged_sha
+             else error("merged_sha")
+             end
            else req_string("head_sha")
            end) as $sha
         | (if (.declared_files | type) == "array" then (.declared_files | join(", ")) else error("declared_files") end) as $scope
@@ -323,6 +327,7 @@ render_prs() {
     fi
 
     [ -n "$v2_rows" ] || return 0
+    printf 'Note: for open PR rows, `SHA` records the PR evidence snapshot head commit; for merged rows, `SHA` records the merged commit. Open-row snapshot SHAs are not expected to equal later commits that contain refreshed generated metadata.\n\n'
     printf '| Order | Slice | PR | Status | Branch | Base | SHA | Scope | Verification |\n'
     printf '|---|---|---|---|---|---|---|---|---|\n'
     while IFS=$'\t' read -r order slice pr status branch base sha scope verification; do
@@ -549,12 +554,10 @@ rebuild_map() {
   if [ "$st_prs" = present ];       then render_prs_into_or_die2 prs_body "$spec_dir"; fi
   if [ "$st_backlinks" = present ]; then bl_body="$(render_backlinks "$spec_dir")"; fi
 
-  # FR-017a fail-safe: a home-note target with ALL three pairs absent is a MALFORMED
-  # home note (a gated home note must carry its INDEX pair — FR-002), NOT a fresh
-  # spec-MOC awaiting injection. It MUST NOT take the inject-if-missing path below
-  # (which would inject all three zones and render PRS/BACKLINKS against the home
-  # note's non-spec directory). Fail safe: exit 2, no write, naming the home note.
-  if [ "$is_home" = 1 ] && [ "$st_index" = absent ] && [ "$st_prs" = absent ] && [ "$st_backlinks" = absent ]; then
+  # FR-017a fail-safe: a home-note target missing INDEX is malformed (FR-002),
+  # even if PRS/BACKLINKS pairs are present. It MUST NOT take the inject-if-missing
+  # path below, which would render spec-style zones against docs/ai/specs/.
+  if [ "$is_home" = 1 ] && [ "$st_index" = absent ]; then
     err "roadmap-MOC home note is gated but missing its GENERATED:INDEX zone: $moc"
   fi
 

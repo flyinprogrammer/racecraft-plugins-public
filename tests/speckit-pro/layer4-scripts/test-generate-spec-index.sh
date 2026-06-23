@@ -102,6 +102,9 @@ RMOC_LEGACY="specs/legacy-thing/SPEC-MOC.md"    # NOT gated                -> SK
 RMOCNI_ROOT="$FIX/roadmap-moc-no-index"
 RMOCNI_HOME="docs/ai/specs/broken-roadmap-MOC.md"
 RMOCNI_SPEC1="specs/prsg-001-foo/SPEC-MOC.md"
+RMOCNIP_ROOT="$FIX/roadmap-moc-no-index-partial"
+RMOCNIP_HOME="docs/ai/specs/partial-roadmap-MOC.md"
+RMOCNIP_SPEC1="specs/prsg-001-foo/SPEC-MOC.md"
 
 # The middle dot in a PRS row is U+00B7 (· — two bytes 0xC2 0xB7), NOT an ASCII
 # dot. Pin the exact bytes the renderer must emit (D3 worked example).
@@ -319,6 +322,8 @@ assert_eq "0" "$rc_gv2" "schemaVersion 2 manifest must render"
 moc_g_v2="$(cat "$copy_g_v2/$PRSV2_MOC" 2>/dev/null || true)"
 set_test "schemaVersion 2 emits the reviewer table columns"
 assert_contains "$moc_g_v2" "| Order | Slice | PR | Status | Branch | Base | SHA | Scope | Verification |"
+set_test "schemaVersion 2 documents PR evidence SHA snapshot semantics"
+assert_contains "$moc_g_v2" 'Note: for open PR rows, `SHA` records the PR evidence snapshot head commit; for merged rows, `SHA` records the merged commit.' "v2 PR rows must clarify open and merged SHA semantics"
 set_test "schemaVersion 2 open row displays head_sha"
 assert_contains "$moc_g_v2" "| 1 | foundation | PR#201 | opened | prsg-009-multi-pr-emission/01-foundation | main | headabc1 | docs/foundation.md, speckit-pro/skills/speckit-autopilot/scripts/multi-pr-emission.sh | specs/prsg-009-multi-pr-emission/.process/emission/foundation/layer4.log |"
 set_test "schemaVersion 2 merged row prefers merged_sha"
@@ -346,6 +351,15 @@ assert_eq "0" "$rc_gv2om" "open row with merged_sha should still render from hea
 moc_g_v2om="$(cat "$copy_g_v2_open_merge/$PRSV2_MOC" 2>/dev/null || true)"
 set_test "schemaVersion 2 open row does not leak merged_sha"
 assert_not_contains "$moc_g_v2om" "openmerge-sha"
+
+copy_g_v2_missing_merge="$(fresh_copy "$PRSV2_ROOT")"
+tmp_v2mm="$copy_g_v2_missing_merge/specs/prsg-921-prs-v2/.process/prs.json.tmp"
+jq '(.records[] | select(.slice_id == "us1")) |= del(.merged_sha)' \
+  "$copy_g_v2_missing_merge/specs/prsg-921-prs-v2/.process/prs.json" > "$tmp_v2mm"
+mv "$tmp_v2mm" "$copy_g_v2_missing_merge/specs/prsg-921-prs-v2/.process/prs.json"
+set_test "schemaVersion 2 merged rows require merged_sha"
+rc_gv2mm=0; "$GEN" "$copy_g_v2_missing_merge" >/dev/null 2>&1 || rc_gv2mm=$?
+assert_eq "2" "$rc_gv2mm" "merged rows must not fall back to head_sha when merged_sha is missing"
 
 # malformed: fail-safe exit 2, distinct from the absent/empty case above.
 copy_g_mal="$(fresh_copy "$PRSMAL_ROOT")"
@@ -609,5 +623,30 @@ assert_contains "$lerr" "broken-roadmap-MOC.md" "FR-017a: stderr must name the m
 set_test "FR-017a --check also fails safe (exit 2, read-only error path)"
 rc_lc=0; "$GEN" --check "$RMOCNI_ROOT" >/dev/null 2>&1 || rc_lc=$?
 assert_eq "2" "$rc_lc" "FR-017a: --check on a malformed home note is exit 2, never exit 0/1"
+
+# ───────────────────────────────────────────────────────────────────────────
+section "(l2) FR-017a — a gated home note missing INDEX fails safe even with other pairs"
+# ───────────────────────────────────────────────────────────────────────────
+# roadmap-moc-no-index-partial/ has a version-gated home note with PRS and
+# BACKLINKS pairs, but no INDEX pair. Home notes are only supported through INDEX,
+# so this must take the same fail-safe as the all-absent malformed home note.
+copy_l2="$(fresh_copy "$RMOCNIP_ROOT")"
+home_before_l2="$(shasum "$copy_l2/$RMOCNIP_HOME" | awk '{print $1}')"
+spec_before_l2="$(shasum "$copy_l2/$RMOCNIP_SPEC1" | awk '{print $1}')"
+set_test "write run over a gated home note missing INDEX but carrying PRS/BACKLINKS -> exit 2"
+rc_l2=0; l2err="$("$GEN" "$copy_l2" 2>&1 >/dev/null)" || rc_l2=$?
+assert_eq "2" "$rc_l2" "FR-017a: a gated home note without INDEX must fail safe even when other generated pairs exist"
+set_test "the partial malformed home note is left wholly unmodified"
+assert_eq "$home_before_l2" "$(shasum "$copy_l2/$RMOCNIP_HOME" | awk '{print $1}')" "FR-017a: no write on partial home-note fail-safe path"
+set_test "the partial malformed home note did NOT gain an injected INDEX zone"
+home_after_l2="$(cat "$copy_l2/$RMOCNIP_HOME" 2>/dev/null || true)"
+assert_not_contains "$home_after_l2" "GENERATED:INDEX:START" "FR-017a: inject-if-missing must NOT fire when INDEX alone is absent"
+set_test "the sibling gated spec-MOC is untouched after the partial-home fail-safe"
+assert_eq "$spec_before_l2" "$(shasum "$copy_l2/$RMOCNIP_SPEC1" | awk '{print $1}')" "FR-017a: partial-home fail-safe aborts the batch before any write"
+set_test "the partial FR-017a error message names the offending home note on stderr"
+assert_contains "$l2err" "partial-roadmap-MOC.md" "FR-017a: stderr must name the malformed partial home note"
+set_test "partial FR-017a --check also fails safe (exit 2, read-only error path)"
+rc_l2c=0; "$GEN" --check "$RMOCNIP_ROOT" >/dev/null 2>&1 || rc_l2c=$?
+assert_eq "2" "$rc_l2c" "FR-017a: --check on a partial malformed home note is exit 2"
 
 test_summary

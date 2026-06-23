@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 <!-- SPECKIT START -->
-No active SpecKit plan — TACD-004 (Verification Coverage) shipped and was archived; the Tool-Agnostic Capability Discovery roadmap is complete. Run `/speckit-pro:speckit-status` for the roadmap dashboard and the recommended next spec.
+No active SpecKit implementation plan is pinned in this global guidance. Inspect current workflow state under `docs/ai/specs/.process/` and active `specs/**` directories before assuming a spec is still in progress.
 <!-- SPECKIT END -->
 
 ## Working in This Repo
@@ -37,7 +37,7 @@ Tradeoff: these bias toward caution over speed. For a one-line `chore:` edit, us
 
 - **Marketplace registry:** `.claude-plugin/marketplace.json` (must be updated when adding a plugin)
 - **Release config:** `release-please-config.json` + `.release-please-manifest.json` (kept in sync; see "Adding a New Plugin to Release Automation" below)
-- **Pipeline verification runbook:** `docs/ai/specs/cicd-release-pipeline-verification.md` (authoritative for branch-protection + release-please setup)
+- **Pipeline verification runbook:** `docs/ai/specs/cicd-release-pipeline-verification.md` (authoritative for branch-protection, release-please, and docs deploy setup)
 - **Per-plugin entry:** `<plugin>/.claude-plugin/plugin.json` (name, version, description)
 - **Test runner:** `tests/<plugin>/run-all.sh` (see "Running Tests") — lives at the repo root, outside the plugin dir, so it is not shipped to consumers
 
@@ -209,7 +209,7 @@ If a PR ever lands on `main` with a non-public-readable title (squash merges use
 
 ## CI/CD Workflow
 
-The PR Checks workflow (`.github/workflows/pr-checks.yml`) runs on every non-draft PR and can also be dispatched by release automation for release-please PR branches created with `GITHUB_TOKEN`. It contains four jobs:
+The PR Checks workflow (`.github/workflows/pr-checks.yml`) runs on every non-draft PR and can also be dispatched by release automation for release-please PR branches created with `GITHUB_TOKEN`. It contains five jobs:
 
 | Job | Description |
 |-----|-------------|
@@ -217,10 +217,11 @@ The PR Checks workflow (`.github/workflows/pr-checks.yml`) runs on every non-dra
 | `test (<plugin>)` | Runs `bash tests/<plugin>/run-all.sh` for each changed plugin (e.g. `test (speckit-pro)`). The name is dynamic — one job per plugin in the matrix. Skipped only when neither the plugin nor its `tests/<plugin>/` suite changed (e.g. docs-only PRs). |
 | `validate-plugins` | Sentinel/aggregator job. Always runs. Passes when all `test` matrix jobs passed or were skipped; fails when any matrix job failed or was cancelled. Provides the stable check name that branch protection requires. |
 | `validate-pr-title` | Validates the PR title against the Conventional Commits pattern. |
+| `validate-docs` | Detects docs-site, generated-reference, release metadata, and docs-validation contract changes. Runs full docs validation for rendered docs or docs-contract changes, and reference plus quality validation for generated-reference changes. |
 
 **Why a sentinel job?** The `test` matrix job name is dynamic (`test (speckit-pro)`, `test (other-plugin)`, etc.) and cannot be registered as a stable required check name. The `validate-plugins` sentinel aggregates all matrix results into one stable name that branch protection can require.
 
-**Docs-only PRs:** When a PR touches only documentation (no plugin directory and no `tests/<plugin>/` suite), `detect` outputs `[]`, `test` is skipped (job-level `if:` evaluates to false — GitHub treats a skipped job as passing, not pending), and `validate-plugins` also passes. Docs-only PRs are not blocked by the test matrix.
+**Docs-only PRs:** When a PR touches only documentation (no plugin directory and no `tests/<plugin>/` suite), `detect` outputs `[]`, `test` is skipped (job-level `if:` evaluates to false — GitHub treats a skipped job as passing, not pending), and `validate-plugins` also passes. Docs-only PRs are not blocked by the test matrix. If the changed documentation is part of the docs-site, generated-reference, or docs-validation contract surfaces, `validate-docs` runs the matching docs validation mode.
 
 **Release-please PRs:** GitHub suppresses normal `pull_request` workflow runs for PRs created or updated by `GITHUB_TOKEN`, so the Release workflow dispatches `PR Checks` manually after it syncs generated `dist/**` payloads onto the release PR branch.
 
@@ -235,6 +236,10 @@ gh api /repos/racecraft-lab/racecraft-plugins-public/branches/main/protection \
 Compare the output against the actual job names in `pr-checks.yml`. Recovery: re-run the Stage 1 branch protection setup command from `docs/ai/specs/cicd-release-pipeline-verification.md` with the corrected check names.
 
 When modifying `.github/workflows/pr-checks.yml` or `.github/workflows/release.yml`, include a note in the PR description confirming whether CLAUDE.md's CI/CD sections require updates.
+
+## Docs Site Deployment
+
+The Deploy Docs workflow (`.github/workflows/deploy-docs.yml`) publishes the Astro/Starlight docs site to GitHub Pages after `pnpm --dir docs-site validate` succeeds. It uses the manual Pages source setting `GitHub Actions`, the `github-pages` environment, least-privilege Pages permissions, and a fixed staging concurrency group. Keep setup, retry, rollback, deployment-history, and DOC-012 staging-versus-launch details in `docs/ai/specs/cicd-release-pipeline-verification.md` rather than duplicating them here.
 
 ## Release Process
 
@@ -451,6 +456,8 @@ gh pr create --base main --head <sync-branch> --title "chore: sync plugin payloa
 - Checked-in Markdown/MDX files only; no database, browser storage, or runtime state (doc-008-troubleshooting-security-trust-update-rollback)
 - JavaScript ESM on Node.js for docs-site scripts; Astro 6.4.6 and Starlight 0.40.0 in `docs-site/`; pnpm 10.25.0 scoped with `pnpm --dir docs-site ...` + Existing `astro`, `@astrojs/starlight`, `@astrojs/check`, `starlight-links-validator`; add minimal Playwright dev dependency only for `validate:smoke` (doc-010-search-accessibility-deep-links-docs-validation)
 - Checked-in Markdown, Astro components, package scripts, generated reference files, and CI artifacts only; no database or browser storage (doc-010-search-accessibility-deep-links-docs-validation)
+- Docs-site JavaScript ESM on Node >=22.12; GitHub Actions YAML; Markdown operator guidance + Astro 6.4.6, Starlight 0.40.0, `@astrojs/check`, `starlight-links-validator`, Playwright 1.61.0, pnpm 10.25.0 via Corepack, standard GitHub Pages Actions (doc-011-github-pages-build-and-deploy-pipeline)
+- Checked-in repository files only; GitHub Pages stores the uploaded `docs-site/dist` static artifact outside repository source control (doc-011-github-pages-build-and-deploy-pipeline)
 
 ## Recent Changes
 - prsg-010-harden-the-hatch: Added PRSG-010 foundation artifacts, contract schemas, workflow state updates, and planning docs for the split PR stack.
