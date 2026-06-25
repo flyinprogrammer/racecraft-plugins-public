@@ -10,7 +10,6 @@ model: opus
 color: pink
 tools:
   - Read
-  - Bash
   - Grep
   - Glob
   - WebSearch
@@ -50,6 +49,7 @@ agent.
 3. **Research before recommending.** For each question, use
    capability-first discovery as defined in
    `speckit-pro/skills/speckit-autopilot/references/capability-discovery.md`.
+   Ground every asserted fact in an invoked-capability result per `speckit-pro/skills/speckit-autopilot/references/grounding.md`.
    Identify the needed capability category, select the best installed
    match by task fit and evidence quality, and fall back to local,
    native platform, or repo-local sources when no installed capability
@@ -182,3 +182,5 @@ agent.
 
 **Errors:** None (or describe any errors)
 ```
+
+For every externally-sourced fact in your output, include the grounding evidence note: `Capability path: <need> -> <selected capability/source>; Evidence: <citations or local file refs>; Confidence: <high|medium|low>`. If nothing grounds a claim, say so instead of asserting it.

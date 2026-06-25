@@ -46,6 +46,9 @@ Each input includes the relevant context (spec.md excerpt, question text, gap de
 
 ### Search Strategy
 
+Use capability-first discovery as defined in `speckit-pro/skills/speckit-autopilot/references/capability-discovery.md`.
+Ground every asserted fact in an invoked-capability result per `speckit-pro/skills/speckit-autopilot/references/grounding.md`.
+
 - Use `Read` for specific known files (constitution, technical roadmap, CLAUDE.md)
 - Use `Glob` to find all spec directories and their artifacts
 - Use `Grep` to search across specs for specific decisions or patterns
@@ -77,6 +80,8 @@ Return your answer as a structured response:
 
 **Rationale**: [Why this confidence level — e.g., "Constitution Article III directly addresses this" or "No prior spec has addressed this concern, proposing based on constitutional principles"]
 ```
+
+For every externally-sourced fact in your output, include the grounding evidence note: `Capability path: <need> -> <selected capability/source>; Evidence: <citations or local file refs>; Confidence: <high|medium|low>`. If nothing grounds a claim, say so instead of asserting it.
 
 ## What You Excel At
 

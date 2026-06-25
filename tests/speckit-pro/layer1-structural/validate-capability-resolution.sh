@@ -30,6 +30,7 @@ DIST_CLAUDE="$REPO_ROOT/dist/claude"
 DIST_CODEX="$REPO_ROOT/dist/codex"
 
 DIRECTIVE_MARKER="capability-discovery.md"
+GROUNDING_MARKER="grounding.md"
 
 # Extract the repo-root-relative path token verbatim. The token is the
 # `speckit-pro/…/capability-discovery.md` substring, cited the same way by both
@@ -39,20 +40,20 @@ DIRECTIVE_MARKER="capability-discovery.md"
 # excluded.
 PATH_TOKEN_RE='speckit-pro/[A-Za-z0-9._/-]*capability-discovery\.md'
 
+# The companion grounding-contract token, cited the same way alongside the
+# directive token. Resolved under both built trees identically.
+GROUNDING_TOKEN_RE='speckit-pro/[A-Za-z0-9._/-]*grounding\.md'
+
 # Out-of-scope EXCLUSION set — mirrors validate-capability-pointer.sh. Excluded
 # agents carry no directive reference, so there is no token to resolve for them.
 CC_EXCLUSIONS=(
   "consensus-synthesizer"
   "gate-validator"
   "phase-executor"
-  "spec-context-analyst"
-  "uat-runbook-author"
 )
 CODEX_EXCLUSIONS=(
   "autopilot-fast-helper"
   "phase-executor"
-  "spec-context-analyst"
-  "uat-runbook-author"
 )
 
 is_in_list() {
@@ -112,7 +113,7 @@ collect_runtime() {
   fi
   _pass
 
-  local agent_name tok
+  local agent_name tok found_dir found_gr
   for f in "${files[@]}"; do
     agent_name=$(basename "$f" ".$ext")
     is_excluded "$runtime" "$agent_name" && continue
@@ -127,20 +128,39 @@ collect_runtime() {
       continue
     fi
 
-    # `|| true`: under `set -euo pipefail` a no-match `grep` (exit 1) or a
-    # SIGPIPE from `head` closing `sort` early would make this command
-    # substitution fail and abort the script BEFORE the empty-token check
-    # below — bypassing the explicit `_fail`. Guard it so a missing token is
-    # always reported as an actionable failure instead of a silent abort.
-    tok=$(grep -oE "$PATH_TOKEN_RE" "$f" | sort -u | head -1 || true)
-    set_test "${runtime}: extracted directive path token from in-scope agent '${agent_name}'"
-    if [ -z "$tok" ]; then
+    # Collect EVERY unique directive token in the file, not just the first.
+    # A file with one valid reference and one stale/broken reference must not
+    # pass on the strength of the valid one — every token is resolved below.
+    found_dir=0
+    while read -r tok; do
+      [ -z "$tok" ] && continue
+      found_dir=1
+      token_seen "$tok" || FOUND_TOKENS+=("$tok")
+    done < <(grep -oE "$PATH_TOKEN_RE" "$f" | sort -u)
+    set_test "${runtime}: extracted directive path token(s) from in-scope agent '${agent_name}'"
+    if [ "$found_dir" -eq 1 ]; then
+      _pass
+    else
       _fail "agent references ${DIRECTIVE_MARKER} but no repo-root-relative path token matched ${PATH_TOKEN_RE} in $f"
-      continue
     fi
-    _pass
 
-    token_seen "$tok" || FOUND_TOKENS+=("$tok")
+    # Companion grounding token(s) (same in-scope set). Also collect ALL unique
+    # matches; the pointer check enforces presence, so here we resolve every
+    # token an agent that references grounding actually carries.
+    if grep -q "$GROUNDING_MARKER" "$f"; then
+      found_gr=0
+      while read -r tok; do
+        [ -z "$tok" ] && continue
+        found_gr=1
+        token_seen "$tok" || FOUND_TOKENS+=("$tok")
+      done < <(grep -oE "$GROUNDING_TOKEN_RE" "$f" | sort -u)
+      set_test "${runtime}: extracted grounding path token(s) from in-scope agent '${agent_name}'"
+      if [ "$found_gr" -eq 1 ]; then
+        _pass
+      else
+        _fail "agent references ${GROUNDING_MARKER} but no repo-root-relative path token matched ${GROUNDING_TOKEN_RE} in $f"
+      fi
+    fi
   done
 }
 

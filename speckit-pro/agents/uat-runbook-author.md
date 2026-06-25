@@ -44,6 +44,9 @@ is generated.
 Read the skeleton first, then spec.md and plan.md (and quickstart.md /
 the diff as needed) to understand what the PR actually does.
 
+Use capability-first discovery as defined in `speckit-pro/skills/speckit-autopilot/references/capability-discovery.md`.
+Ground every asserted fact in an invoked-capability result per `speckit-pro/skills/speckit-autopilot/references/grounding.md`.
+
 ## What you produce — edit the skeleton in place
 
 Keep the file's section order and its `##` headings exactly as the
@@ -103,6 +106,8 @@ placeholders, e.g. a `<set on PR open>` PR field).
 - Return a short summary to the orchestrator: which three rewrites you
   applied, the story/check count, and any section you intentionally
   removed.
+
+For every externally-sourced fact in your output, include the grounding evidence note: `Capability path: <need> -> <selected capability/source>; Evidence: <citations or local file refs>; Confidence: <high|medium|low>`. If nothing grounds a claim, say so instead of asserting it.
 
 ## Fail-open — never block the PR
 
