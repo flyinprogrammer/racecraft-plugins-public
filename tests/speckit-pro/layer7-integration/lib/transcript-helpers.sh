@@ -249,3 +249,140 @@ assert_transcript_not_contains_term() {
   local transcript="$1" term="$2"
   ! grep -F -q -- "$term" "$transcript"
 }
+
+# ===========================================================================
+# Tool-usage observability + grounding (capability-discovery / grounding.md)
+# ===========================================================================
+
+# extract_tool_uses <transcript.jsonl> [scope]
+#   scope: "orchestrator" (isSidechain false), "sidechain" (true), or "all".
+#   stdout: JSON array of EVERY tool_use (not just Agent/Skill) as
+#   {name, id, isSidechain}. This is the "what tools did the agents actually
+#   invoke" report — the observability the grounding proof is built on.
+extract_tool_uses() {
+  local transcript="$1" scope="${2:-all}"
+  jq -cs --arg scope "$scope" '
+    [
+      .[]
+      | select(.type == "assistant")
+      | (if $scope == "orchestrator" then select((.isSidechain // false) == false)
+         elif $scope == "sidechain" then select((.isSidechain // false) == true)
+         else . end)
+      | . as $e
+      | (.message.content // [])[]
+      | select(.type == "tool_use")
+      | {name: .name, id: .id, isSidechain: ($e.isSidechain // false)}
+    ]
+  ' "$transcript"
+}
+
+# extract_tool_use_names <transcript.jsonl> [scope]
+#   stdout: newline-separated unique tool names actually invoked.
+extract_tool_use_names() {
+  local transcript="$1" scope="${2:-all}"
+  extract_tool_uses "$transcript" "$scope" | jq -r '.[].name' | sort -u
+}
+
+# tool_invoked <transcript.jsonl> <name> [scope]
+#   exit 0 if a tool_use with exactly <name> appears in scope, else exit 1.
+tool_invoked() {
+  local transcript="$1" name="$2" scope="${3:-all}"
+  extract_tool_use_names "$transcript" "$scope" | grep -qxF "$name"
+}
+
+# extract_completed_tool_names <transcript.jsonl> [scope]
+#   stdout: newline-separated unique tool names whose tool_use `id` has a
+#   matching `tool_result.tool_use_id` — i.e. the tool was invoked AND returned
+#   a result. A call that errored, was interrupted, or never returned is NOT
+#   listed, so grounding cannot rest on a tool that produced nothing.
+extract_completed_tool_names() {
+  local transcript="$1" scope="${2:-all}"
+  jq -rs --arg scope "$scope" '
+    ( [ .[]
+        | select(.type == "user")
+        | (.message.content // [])[]
+        | select(.type == "tool_result")
+        | select((.is_error // false) == false)   # a FAILED call grounds nothing
+        | .tool_use_id ] ) as $results
+    | [ .[]
+        | select(.type == "assistant")
+        | (if $scope == "orchestrator" then select((.isSidechain // false) == false)
+           elif $scope == "sidechain" then select((.isSidechain // false) == true)
+           else . end)
+        | (.message.content // [])[]
+        | select(.type == "tool_use")
+        | select(.id as $id | ($results | index($id)) != null)
+        | .name ]
+    | unique | .[]
+  ' "$transcript" 2>/dev/null
+}
+
+# extract_assistant_text <transcript.jsonl>
+#   stdout: every assistant `text` block — the agent's own answer text, where a
+#   grounded claim and its Evidence note live (never tool results or prompts).
+extract_assistant_text() {
+  local transcript="$1"
+  jq -r '
+    select(.type == "assistant")
+    | (.message.content // [])[]
+    | select(.type == "text")
+    | .text
+  ' "$transcript" 2>/dev/null
+}
+
+# The strict, full grounding Evidence-note shape. A "Capability path:" note that
+# does not match this is MALFORMED (missing the `-> <source>`, `; Evidence:`, or
+# `; Confidence:` segment).
+GROUNDING_NOTE_RE='Capability path:[^;]*->[[:space:]]*[^;[:space:]]+;[[:space:]]*Evidence:[^;]*;[[:space:]]*Confidence:'
+
+# extract_capability_citations <transcript.jsonl>
+#   stdout: newline-separated unique cited capability <source> tokens, parsed
+#   ONLY from the agent's own answer (assistant `text` blocks) and ONLY from
+#   well-formed notes matching GROUNDING_NOTE_RE.
+extract_capability_citations() {
+  local transcript="$1"
+  extract_assistant_text "$transcript" \
+    | grep -oE "$GROUNDING_NOTE_RE" \
+    | sed -E 's/.*->[[:space:]]*//; s/;.*//; s/[[:space:]]+$//' \
+    | grep -v '^$' | sort -u || true
+}
+
+# has_malformed_citation <transcript.jsonl>
+#   exit 0 if the agent answer contains a "Capability path:" note that does NOT
+#   match the full required structure. A malformed note must not be silently
+#   ignored — otherwise it would pass as "no citation -> grounded" while actually
+#   asserting an unverifiable fact.
+has_malformed_citation() {
+  local transcript="$1" text all wf
+  text=$(extract_assistant_text "$transcript")
+  all=$(printf '%s\n' "$text" | grep -cE 'Capability path:' || true)
+  wf=$(printf '%s\n' "$text" | grep -oE "$GROUNDING_NOTE_RE" | grep -c . || true)
+  [ "${all:-0}" -gt "${wf:-0}" ]
+}
+
+# grounding_verdict <transcript.jsonl>
+#   stdout: "grounded" if every well-formed citation maps to a tool that was
+#   actually invoked AND returned a NON-ERROR result (see
+#   extract_completed_tool_names); "ungrounded" if any citation has no such
+#   completed invocation (fabricated / errored / non-returning), OR if the answer
+#   contains a malformed "Capability path:" note. An answer with no capability
+#   notes at all is "grounded" (it asserted nothing it had to back — e.g. a
+#   correct abstention).
+grounding_verdict() {
+  local transcript="$1"
+  local completed cite
+  # A malformed grounding note is a grounding failure, not a free pass.
+  if has_malformed_citation "$transcript"; then
+    printf 'ungrounded\n'
+    return 0
+  fi
+  completed=$(extract_completed_tool_names "$transcript" "all")
+  while read -r cite; do
+    [ -z "$cite" ] && continue
+    if ! printf '%s\n' "$completed" | grep -qxF "$cite"; then
+      printf 'ungrounded\n'
+      return 0
+    fi
+  done < <(extract_capability_citations "$transcript")
+  printf 'grounded\n'
+}
