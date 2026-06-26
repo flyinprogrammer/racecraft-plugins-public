@@ -66,8 +66,32 @@ const DOC010_FOUNDATION_FILES = Object.freeze([
   'docs-site/tests/docs-smoke.spec.mjs',
 ]);
 
-const DOC011_STAGING_ROBOTS_PATH = 'docs-site/public/robots.txt';
-const DOC011_STAGING_ROBOTS_POLICY = 'User-agent: *\nDisallow: /\n';
+// DOC-014 (C1) retargeted the robots assertion. The static
+// `docs-site/public/robots.txt` (DOC-011's `Disallow: /`) was removed so it could
+// not shadow the dynamic endpoint; the crawler-access policy now lives in the
+// `robots.txt.ts` endpoint source, which this gate asserts (matching the
+// source-reading style of the noindex-meta assertion below). The policy ALLOWS
+// the citation + training tiers and the default crawler, advertises a Sitemap,
+// and emits NO `Disallow: /` (the deliberate max-discoverability posture).
+const DOC014_ROBOTS_ENDPOINT_PATH = 'docs-site/src/pages/robots.txt.ts';
+const DOC014_ROBOTS_REQUIRED_AGENTS = Object.freeze([
+  // Citation tier.
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'Claude-SearchBot',
+  'Claude-User',
+  'PerplexityBot',
+  'Perplexity-User',
+  // Training tier (ALLOWED — the inverse of the sibling).
+  'GPTBot',
+  'Google-Extended',
+  'CCBot',
+  'anthropic-ai',
+  'ClaudeBot',
+]);
+
+// DOC-011 (C10) — the staging noindex guard. KEPT INTACT by DOC-014; only the
+// robots assertion above was retargeted. Do NOT weaken this.
 const DOC011_ASTRO_CONFIG_PATH = 'docs-site/astro.config.mjs';
 const DOC011_STAGING_ROBOTS_META_PATTERN =
   /head:\s*\[[\s\S]*tag:\s*['"]meta['"][\s\S]*attrs:\s*\{[\s\S]*name:\s*['"]robots['"][\s\S]*content:\s*['"]noindex,\s*nofollow['"][\s\S]*\}[\s\S]*\]/;
@@ -348,10 +372,6 @@ function normalizeCommand(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
-function normalizeLineEndings(value) {
-  return value.replace(/\r\n?/g, '\n');
-}
-
 function validateRouteSources(diagnostics) {
   for (const route of DOC010_ROUTES) {
     assertRepoRelative(route.sourcePath, diagnostics);
@@ -421,14 +441,53 @@ function validateDocsCommandChain(diagnostics) {
 }
 
 function validateStagingIndexingGuard(diagnostics) {
-  assertRepoRelative(DOC011_STAGING_ROBOTS_PATH, diagnostics);
-  const robotsSource = readRepoText(DOC011_STAGING_ROBOTS_PATH, diagnostics);
-  if (normalizeLineEndings(robotsSource) !== DOC011_STAGING_ROBOTS_POLICY) {
-    diagnostics.push(
-      `${DOC011_STAGING_ROBOTS_PATH}: DOC-011 staging robots policy must exactly contain "User-agent: *" followed by "Disallow: /".`,
-    );
+  // DOC-014 (C1) — assert the crawler-access policy in the robots.txt.ts endpoint
+  // source: every citation + training agent ALLOWED, a default `User-agent: *`
+  // ALLOWED, a Sitemap advertised, and NO `Disallow: /` anywhere (the inverse of
+  // the sibling's training block). The static `public/robots.txt` is intentionally
+  // gone, so reading it here would be a false failure.
+  assertRepoRelative(DOC014_ROBOTS_ENDPOINT_PATH, diagnostics);
+  const robotsEndpointSource = readRepoText(DOC014_ROBOTS_ENDPOINT_PATH, diagnostics);
+  if (robotsEndpointSource) {
+    // Strip line and block comments so the assertions evaluate the emitted policy
+    // (the code), not explanatory prose — the docstring necessarily mentions the
+    // sibling's "Disallow: /" and the crawler names, which would otherwise mask a
+    // real regression in the directives the endpoint actually emits.
+    const robotsCode = robotsEndpointSource
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+
+    if (/Disallow:\s*\//.test(robotsCode)) {
+      diagnostics.push(
+        `${DOC014_ROBOTS_ENDPOINT_PATH}: crawler-access policy must NOT emit "Disallow: /" (DOC-014 allows the citation and training tiers).`,
+      );
+    }
+    if (!/Allow:\s*\//.test(robotsCode)) {
+      diagnostics.push(
+        `${DOC014_ROBOTS_ENDPOINT_PATH}: crawler-access policy must emit "Allow: /" for permitted crawlers.`,
+      );
+    }
+    if (!/User-agent:\s*\*/.test(robotsCode)) {
+      diagnostics.push(
+        `${DOC014_ROBOTS_ENDPOINT_PATH}: crawler-access policy must include a default "User-agent: *" group.`,
+      );
+    }
+    if (!/Sitemap:/.test(robotsCode)) {
+      diagnostics.push(
+        `${DOC014_ROBOTS_ENDPOINT_PATH}: crawler-access policy must advertise a "Sitemap:" location derived from site+base.`,
+      );
+    }
+    for (const agent of DOC014_ROBOTS_REQUIRED_AGENTS) {
+      if (!robotsCode.includes(agent)) {
+        diagnostics.push(
+          `${DOC014_ROBOTS_ENDPOINT_PATH}: crawler-access policy must name the allowed crawler "${agent}".`,
+        );
+      }
+    }
   }
 
+  // DOC-011 (C10) — noindex-meta guard, KEPT INTACT (only the robots assertion
+  // above was retargeted by DOC-014). Do NOT weaken this.
   assertRepoRelative(DOC011_ASTRO_CONFIG_PATH, diagnostics);
   const astroConfigSource = readRepoText(DOC011_ASTRO_CONFIG_PATH, diagnostics);
   if (!DOC011_STAGING_ROBOTS_META_PATTERN.test(astroConfigSource)) {
@@ -503,6 +562,58 @@ function validateSafetyBoundaries(diagnostics) {
   }
 }
 
+// DOC-014 (T025 / C9 / FR-010): every content page MUST carry a non-empty
+// `description:` frontmatter line. Presence is enforced (not advisory), so a
+// missing/empty description FAILS validation. DOC-015 later refreshes the prose.
+const DOC014_CONTENT_DOCS_DIR = 'docs-site/src/content/docs';
+
+function validateMetaDescriptions(diagnostics) {
+  const docsDirAbs = repoResolve(DOC014_CONTENT_DOCS_DIR);
+  let dirents;
+  try {
+    dirents = fs.readdirSync(docsDirAbs, { recursive: true, withFileTypes: true });
+  } catch (error) {
+    const code = typeof error?.code === 'string' ? error.code : 'READ_ERROR';
+    diagnostics.push(
+      `${DOC014_CONTENT_DOCS_DIR}: unable to enumerate content pages for description validation (${code}).`,
+    );
+    return;
+  }
+
+  const pages = dirents
+    .filter((entry) => entry.isFile() && /\.(md|mdx)$/.test(entry.name))
+    .map((entry) => path.relative(REPO_ROOT, path.join(entry.parentPath ?? entry.path, entry.name)))
+    .sort();
+
+  if (pages.length === 0) {
+    diagnostics.push(`${DOC014_CONTENT_DOCS_DIR}: no content pages found for description validation.`);
+    return;
+  }
+
+  for (const relativePath of pages) {
+    const source = readRepoText(relativePath, diagnostics);
+    if (!source) continue;
+
+    const frontmatter = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!frontmatter) {
+      diagnostics.push(`${relativePath}: missing frontmatter; DOC-014 (FR-010) requires a non-empty description.`);
+      continue;
+    }
+
+    // Convention (intentional): every content page carries a non-empty, single-line
+    // inline `description:` value. Starlight meta descriptions are short strings, so
+    // a one-line scalar is the enforced norm here — multi-line folded/block scalars
+    // are not used. This checks presence + non-emptiness of that inline value.
+    const descLine = frontmatter[1].match(/^description:[ \t]*(.*)$/m);
+    const value = descLine ? descLine[1].trim().replace(/^["']|["']$/g, '').trim() : '';
+    if (!value) {
+      diagnostics.push(
+        `${relativePath}: missing or empty \`description:\` frontmatter (DOC-014 FR-010 requires one on every content page).`,
+      );
+    }
+  }
+}
+
 export function validateDocsQuality() {
   const diagnostics = [];
 
@@ -514,6 +625,7 @@ export function validateDocsQuality() {
   validateSupportCrossLinks(diagnostics);
   validateSourceUpdateGuidance(diagnostics);
   validateSafetyBoundaries(diagnostics);
+  validateMetaDescriptions(diagnostics);
 
   return diagnostics;
 }

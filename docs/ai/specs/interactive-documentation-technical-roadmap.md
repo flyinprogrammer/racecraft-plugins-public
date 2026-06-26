@@ -72,7 +72,7 @@ DOC-007 -> DOC-008
 | DOC-011 | GitHub Pages build-and-deploy pipeline | Completed/archived | `.process/DOC-011-workflow.md` | Archived after PR #243 |
 | DOC-012 | Custom domain + base-path migration to plugins.racecraft.co | ⏳ Pending | — | **LAST — public launch gate**; runs after all other DOC specs (P1) |
 | DOC-013 | Brand identity and marketplace landing page | Completed/archived | `.process/DOC-013-workflow.md` | Archived after PR #246 |
-| DOC-014 | SEO and AI discoverability | ⏳ Pending | — | Not started — staging deploy foundation exists from DOC-011; URLs finalize at DOC-012 launch (P1) |
+| DOC-014 | SEO and AI discoverability | 🔄 In Progress | `.process/DOC-014-workflow.md` | Scaffolded 2026-06-25 (one spec, no split); max-discoverability posture — training bots allowed; URLs finalize at DOC-012 launch (P1) |
 | DOC-015 | Editorial and content-QA pass | ⏳ Pending | — | Not started — production readiness (P1) |
 | DOC-016 | WCAG 2.1 AA accessibility hardening | ⏳ Pending | — | Not started — depends on DOC-013 (P2) |
 | DOC-017 | Performance budget and Lighthouse CI | ⏳ Pending | — | Not started — depends on DOC-013/014 plus the shipped DOC-011 deploy foundation (P2) |
@@ -561,6 +561,7 @@ Budget result: within budget
 - Reconcile gate numbering to G0-G7 in `spec-kit-lifecycle.mdx`; normalize "Spec Kit" vs "SpecKit" to one deliberate convention; fix `specify version` -> `specify --version`.
 - Add an editorial linter to `validate-docs-quality.mjs` (deny-list of internal tokens like `DOC-0\d\d`, "owner DOC", "Deferred Boundary") so leaks cannot recur.
 - Apply a light answer-first style in the same pass: lead each page/section with the answer (BLUF) and keep sections self-contained, so prose is cleanly chunked and citable by AI engines. Style only — do **not** inject manufactured statistics or citation density (install/reference docs have little to legitimately cite; manufacturing it is anti-value). This is the single content-side GEO lever the roadmap owns: DOC-014 owns the metadata, DOC-015 owns the prose.
+- **Refresh the meta descriptions DOC-014 authored (handoff from DOC-014).** DOC-014 added a `description:` to all ~19 content pages solely to satisfy the presence gate (`validateMetaDescriptions`); they are placeholder-quality. In this prose pass, rewrite each to be accurate and compelling. The 7 generated reference-page descriptions live in `docs-site/scripts/generate-reference-pages.mjs` (`renderPage()` frontmatter), NOT the generated `.md` files — refresh them there so `pnpm --dir docs-site reference:generate` stays idempotent.
 
 **Out of Scope:**
 - IA restructuring or new pages.
