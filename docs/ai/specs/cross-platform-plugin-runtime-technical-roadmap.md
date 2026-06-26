@@ -133,8 +133,8 @@ PUBLIC RELEASE UNBLOCKED
 
 | Spec | Name | Status | Workflow File | Next Phase |
 |---|---|---|---|---|
-| XPLAT-001 | Runtime Inventory and Constraints | Pending | — | Scaffold first; produces the inventory and evaluation rubric |
-| XPLAT-002 | Runtime Implementation Options and Contract Decision | Pending | — | Blocked by XPLAT-001 inventory |
+| XPLAT-001 | Runtime Inventory and Constraints | Complete | `.process/XPLAT-001-workflow.md` | Inventory report: `docs/ai/research/cross-platform-runtime-inventory.md` |
+| XPLAT-002 | Runtime Implementation Options and Contract Decision | Pending | — | Ready to scaffold from XPLAT-001 runtime rubric |
 | XPLAT-003 | Supply-Chain Security and Consumer Trust Model | Pending | — | Blocked by XPLAT-002 runtime decision; must finish before runner foundation |
 | XPLAT-004 | Cross-Platform Runner Foundation | Pending | — | Blocked by XPLAT-002 runtime decision and XPLAT-003 security model |
 | XPLAT-005 | Read-Only Helper Port | Pending | — | Blocked by XPLAT-004 runner foundation |
@@ -151,25 +151,30 @@ PUBLIC RELEASE UNBLOCKED
 
 **Priority:** P1 | **Depends On:** None | **Enables:** XPLAT-002, XPLAT-003, XPLAT-004, XPLAT-005, XPLAT-006, XPLAT-007
 
-**Status:** Pending. This is the first spec to scaffold.
+**Status:** Complete. Scaffolded and implemented on 2026-06-25 in branch `codex/xplat-001-runtime-inventory-constraints`; workflow file is `docs/ai/specs/.process/XPLAT-001-workflow.md`; durable report is `docs/ai/research/cross-platform-runtime-inventory.md`.
 
 **Goal:** Produce a complete active-runtime inventory and a decision rubric for
 runtime and supply-chain choices. Do not choose or implement the replacement
 runtime in this spec.
 
 **Reviewability Budget:** Primary surface: docs/process |
-Projected reviewable LOC: 0-80 |
-Production files: 0 |
-Total files: 2-4 |
-Budget result: within budget (architecture/inventory spike)
+Secondary surface: harness/adapter evidence only if needed |
+Projected reviewable LOC: 250 |
+Production files: 4 |
+Total files: 10 |
+Budget result: warning accepted because setup identified two review surfaces,
+while XPLAT-001 remains one inventory/rubric spike with no runtime
+implementation.
 
 **Scope:**
 
-- Inventory all active Bash, `.sh`, `jq`, shell-quoting, Unix-path, `chmod`, and
-  line-ending assumptions reachable from installed Claude and Codex plugin
-  workflows.
+- Run a whole-repo tracked-text scan for Bash, `.sh`, `jq`, shell-quoting,
+  Unix-path, `chmod`, and line-ending assumptions, including generated payloads,
+  public docs, tests, fixtures, and historical/archive references.
 - Classify references as active runtime, generated payload, public docs,
   repository-only maintainer tooling, tests/fixtures, or historical/archive.
+- Require static caller-to-callee invocation-trace evidence before marking any
+  finding as a proven active installed-runtime dependency.
 - Map every active runtime dependency to an owner category: read-only helper,
   mutation/helper, cutover guidance, repository-only exclusion, or follow-up
   exception.
@@ -214,6 +219,21 @@ Budget result: within budget (architecture/inventory spike)
 - XPLAT-003 has a clear security/trust evaluation rubric and artifact list.
 - Every active Bash dependency has a provisional owner spec: XPLAT-005,
   XPLAT-006, XPLAT-007, or repository-only exclusion.
+
+**Completion Handoff:**
+
+- Inventory represented 21,162 scan hits across the scoped runtime-assumption
+  families: shell substrate, script-file references, JSON query usage, shell
+  quoting/operators, Unix paths, file-mode changes, and newline policy.
+- Active installed-runtime rows map to XPLAT-005 read-only helper work,
+  XPLAT-006 mutation/install/PR-emission helper work, and XPLAT-007 generated
+  payload cutover guidance.
+- XPLAT-002 should use the non-scoring runtime rubric in the report.
+- XPLAT-003 should use the non-scoring supply-chain rubric in the report.
+- XPLAT-001 did not port helpers to a replacement runtime, change active
+  installed invocation paths, score candidates, or select controls. Post-PR
+  review remediation synchronized generated payload copies of the existing
+  spec-index helper only.
 
 ---
 

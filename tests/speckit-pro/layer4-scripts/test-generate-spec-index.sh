@@ -89,15 +89,19 @@ ATOM_LEGACY_MOC="specs/b-prsg-914-legacy/SPEC-MOC.md"
 
 # Roadmap-MOC home-note fixtures (PRSG-004). The home note lives at
 # docs/ai/specs/<slug>-roadmap-MOC.md and is processed disjoint from the specs/
-# scan. roadmap-moc/ exercises the repo-wide INDEX fill + every per-spec INDEX
+# scan. roadmap-moc/ exercises the home-scoped INDEX fill + every per-spec INDEX
 # staying empty/byte-identical; roadmap-moc-no-index/ exercises the FR-017a
 # fail-safe (a gated home note missing its INDEX pair -> exit 2, no write).
 RMOC_ROOT="$FIX/roadmap-moc"
 RMOC_HOME="docs/ai/specs/myproject-roadmap-MOC.md"
+RMOC_OTHER_HOME="docs/ai/specs/otherproject-roadmap-MOC.md"
 RMOC_SPEC1="specs/prsg-001-foo/SPEC-MOC.md"     # gated, status=complete  -> indexed
 RMOC_SPEC2="specs/prsg-002-bar/SPEC-MOC.md"     # gated, status=""        -> indexed (blank status)
 RMOC_SPEC10="specs/prsg-010-baz/SPEC-MOC.md"    # gated, status=in-progress -> indexed
+RMOC_FLAT_OWNED="specs/prsg-011-flat-owned/spec.md" # ungated flat fallback, owned by myproject
+RMOC_FLAT_UNOWNED="specs/prsg-099-flat/spec.md" # ungated flat fallback, no roadmap owner -> skipped
 RMOC_NOID="specs/prsg-003-noid/SPEC-MOC.md"     # gated, spec_id=""        -> SKIPPED (FR-015a)
+RMOC_OTHER_SPEC="specs/prsg-004-other/SPEC-MOC.md" # gated, points to other roadmap -> indexed only there
 RMOC_LEGACY="specs/legacy-thing/SPEC-MOC.md"    # NOT gated                -> SKIPPED (FR-016)
 RMOCNI_ROOT="$FIX/roadmap-moc-no-index"
 RMOCNI_HOME="docs/ai/specs/broken-roadmap-MOC.md"
@@ -105,6 +109,9 @@ RMOCNI_SPEC1="specs/prsg-001-foo/SPEC-MOC.md"
 RMOCNIP_ROOT="$FIX/roadmap-moc-no-index-partial"
 RMOCNIP_HOME="docs/ai/specs/partial-roadmap-MOC.md"
 RMOCNIP_SPEC1="specs/prsg-001-foo/SPEC-MOC.md"
+RMOCEZ_ROOT="$FIX/roadmap-moc-extra-zones"
+RMOCEZ_HOME="docs/ai/specs/extra-zones-roadmap-MOC.md"
+RMOCEZ_SPEC1="specs/prsg-001-foo/SPEC-MOC.md"
 
 # The middle dot in a PRS row is U+00B7 (· — two bytes 0xC2 0xB7), NOT an ASCII
 # dot. Pin the exact bytes the renderer must emit (D3 worked example).
@@ -481,13 +488,13 @@ rc_jc=0; "$GEN" --check "$copy_j" >/dev/null 2>&1 || rc_jc=$?
 assert_eq "2" "$rc_jc" "--check on a symlinked target is exit 2, never exit 1 stale (FR-012/FR-016)"
 
 # ───────────────────────────────────────────────────────────────────────────
-section "(k) roadmap-MOC home note — INDEX fills repo-wide; every spec-MOC stays empty"
+section "(k) roadmap-MOC home note — INDEX fills home-scoped rows; every spec-MOC stays empty"
 # ───────────────────────────────────────────────────────────────────────────
 # The home note at docs/ai/specs/<slug>-roadmap-MOC.md carries ONLY the INDEX
 # sentinel pair. A write run must fill its INDEX with one row per gated spec whose
-# spec_id is non-empty, normalized-ID ascending, each a relative []() link — while
-# EVERY per-spec SPEC-MOC INDEX stays empty/byte-identical (FR-018). This group
-# fails RED today: render_index returns empty, so the home note never fills.
+# spec_id is non-empty and whose `up:` target points at that home note or its
+# technical roadmap, normalized-ID ascending, each a relative []() link — while
+# EVERY per-spec SPEC-MOC INDEX stays empty/byte-identical (FR-018).
 copy_k="$(fresh_copy "$RMOC_ROOT")"
 
 # Snapshot every per-spec SPEC-MOC.md BEFORE the run, to prove byte-identity after.
@@ -495,6 +502,7 @@ spec1_before_k="$(shasum "$copy_k/$RMOC_SPEC1" | awk '{print $1}')"
 spec2_before_k="$(shasum "$copy_k/$RMOC_SPEC2" | awk '{print $1}')"
 spec10_before_k="$(shasum "$copy_k/$RMOC_SPEC10" | awk '{print $1}')"
 noid_before_k="$(shasum "$copy_k/$RMOC_NOID" | awk '{print $1}')"
+other_before_k="$(shasum "$copy_k/$RMOC_OTHER_SPEC" | awk '{print $1}')"
 legacy_before_k="$(shasum "$copy_k/$RMOC_LEGACY" | awk '{print $1}')"
 
 set_test "write run over a repo with a roadmap-MOC home note succeeds (exit 0)"
@@ -502,16 +510,37 @@ rc_k=0; "$GEN" "$copy_k" >/dev/null 2>&1 || rc_k=$?
 assert_eq "0" "$rc_k" "a well-formed home note + gated specs must regenerate without error (FR-011)"
 
 home_k="$(cat "$copy_k/$RMOC_HOME" 2>/dev/null || true)"
+other_home_k="$(cat "$copy_k/$RMOC_OTHER_HOME" 2>/dev/null || true)"
 # Isolate the home note's INDEX zone body (between the START and END sentinels).
 hidx_k="${home_k#*GENERATED:INDEX:START}"; hidx_k="${hidx_k#*$'\n'}"; hidx_k="${hidx_k%%<!-- GENERATED:INDEX:END*}"
+ohidx_k="${other_home_k#*GENERATED:INDEX:START}"; ohidx_k="${ohidx_k#*$'\n'}"; ohidx_k="${ohidx_k%%<!-- GENERATED:INDEX:END*}"
 
-# (1) repo-wide fill: one row per gated, non-empty-spec_id spec, exact bytes incl.
-# the U+00B7 separator framing (FR-012/FR-014/SC-006). The link is the relative
-# ../../../specs/<dir>/SPEC-MOC.md target — never a [[wikilink]].
+# (1) home-scoped fill: one row per gated, non-empty-spec_id spec owned by that
+# roadmap, exact bytes incl. the U+00B7 separator framing (FR-012/FR-014/SC-006).
+# The link is the relative ../../../specs/<dir>/SPEC-MOC.md target — never a
+# [[wikilink]].
 set_test "home INDEX has the PRSG-001 row with exact bytes (relative link + U+00B7 + status)"
 assert_contains "$home_k" "- [PRSG-001](../../../specs/prsg-001-foo/SPEC-MOC.md) ${PRS_SEP} complete" "FR-012/FR-014 exact row bytes"
 set_test "home INDEX has the PRSG-010 row with exact bytes"
 assert_contains "$home_k" "- [PRSG-010](../../../specs/prsg-010-baz/SPEC-MOC.md) ${PRS_SEP} in-progress" "FR-012/FR-014 exact row bytes"
+set_test "home INDEX excludes specs owned by another roadmap-MOC"
+assert_not_contains "$hidx_k" "prsg-004-other" "home INDEX must be scoped by SPEC-MOC up target"
+set_test "other roadmap home INDEX includes its own technical-roadmap-owned spec"
+assert_contains "$other_home_k" "- [PRSG-004](../../../specs/prsg-004-other/SPEC-MOC.md) ${PRS_SEP} review" "home_up target also owns specs pointing at the technical roadmap"
+set_test "other roadmap home INDEX excludes myproject specs"
+assert_not_contains "$ohidx_k" "prsg-001-foo" "other home INDEX must not be repo-wide"
+set_test "home INDEX includes an owned flat fallback spec"
+assert_contains "$home_k" $'- [PRSG-011-FLAT-OWNED](../../../specs/prsg-011-flat-owned/spec.md) \xc2\xb7\n' "structure-version fallback rows require roadmap ownership"
+set_test "other roadmap home INDEX excludes flat fallback specs owned by myproject"
+assert_not_contains "$ohidx_k" "prsg-011-flat-owned" "flat fallback rows must be scoped to their roadmap owner"
+set_test "home INDEX excludes unowned flat fallback specs"
+assert_not_contains "$hidx_k" "prsg-099-flat" "unowned flat fallback rows must not leak into roadmap home INDEX"
+set_test "other roadmap home INDEX excludes unowned flat fallback specs"
+assert_not_contains "$ohidx_k" "prsg-099-flat" "unowned flat fallback rows must not leak into any roadmap home INDEX"
+set_test "home INDEX excludes memory fallback headings without roadmap ownership"
+assert_not_contains "$hidx_k" "PRSG-098" "memory fallback rows have no ownership metadata and must not enter scoped home INDEX"
+set_test "other roadmap home INDEX excludes memory fallback headings without roadmap ownership"
+assert_not_contains "$ohidx_k" "PRSG-098" "memory fallback rows have no ownership metadata and must not enter scoped home INDEX"
 # (3) empty-status spec STILL emits a row, separator present + blank status — pin the
 # frozen byte form (separator, no trailing whitespace, end of line) (FR-015, SC-004).
 set_test "empty-status spec still emits a row without trailing whitespace (FR-015)"
@@ -554,6 +583,8 @@ set_test "per-spec PRSG-010 SPEC-MOC.md is byte-identical after the run (FR-018)
 assert_eq "$spec10_before_k" "$(shasum "$copy_k/$RMOC_SPEC10" | awk '{print $1}')" "FR-018: spec-MOC path is byte-identical"
 set_test "per-spec absent-spec_id SPEC-MOC.md is byte-identical after the run (FR-018)"
 assert_eq "$noid_before_k" "$(shasum "$copy_k/$RMOC_NOID" | awk '{print $1}')" "FR-018: a skipped-from-INDEX spec-MOC is still byte-identical"
+set_test "per-spec other-roadmap SPEC-MOC.md is byte-identical after the run (FR-018)"
+assert_eq "$other_before_k" "$(shasum "$copy_k/$RMOC_OTHER_SPEC" | awk '{print $1}')" "FR-018: other-roadmap spec-MOC path is byte-identical"
 set_test "the legacy non-gated SPEC-MOC.md is byte-identical after the run (FR-016)"
 assert_eq "$legacy_before_k" "$(shasum "$copy_k/$RMOC_LEGACY" | awk '{print $1}')" "FR-016: legacy spec-MOC left untouched"
 set_test "the per-spec PRSG-001 INDEX zone is still empty (consecutive START/END, link-free)"
@@ -648,5 +679,27 @@ assert_contains "$l2err" "partial-roadmap-MOC.md" "FR-017a: stderr must name the
 set_test "partial FR-017a --check also fails safe (exit 2, read-only error path)"
 rc_l2c=0; "$GEN" --check "$RMOCNIP_ROOT" >/dev/null 2>&1 || rc_l2c=$?
 assert_eq "2" "$rc_l2c" "FR-017a: --check on a partial malformed home note is exit 2"
+
+# ───────────────────────────────────────────────────────────────────────────
+section "(l3) FR-017a — a gated home note with INDEX plus PRS/BACKLINKS fails safe"
+# ───────────────────────────────────────────────────────────────────────────
+# roadmap-moc-extra-zones/ has a version-gated home note with its required INDEX
+# pair plus unsupported PRS/BACKLINKS pairs. Home notes are INDEX-only surfaces;
+# rendering PRS/BACKLINKS against docs/ai/specs/ would fabricate unrelated links.
+copy_l3="$(fresh_copy "$RMOCEZ_ROOT")"
+home_before_l3="$(shasum "$copy_l3/$RMOCEZ_HOME" | awk '{print $1}')"
+spec_before_l3="$(shasum "$copy_l3/$RMOCEZ_SPEC1" | awk '{print $1}')"
+set_test "write run over a gated home note with INDEX plus PRS/BACKLINKS -> exit 2"
+rc_l3=0; l3err="$("$GEN" "$copy_l3" 2>&1 >/dev/null)" || rc_l3=$?
+assert_eq "2" "$rc_l3" "FR-017a: home notes must fail safe when unsupported PRS/BACKLINKS zones are present"
+set_test "the extra-zones malformed home note is left wholly unmodified"
+assert_eq "$home_before_l3" "$(shasum "$copy_l3/$RMOCEZ_HOME" | awk '{print $1}')" "FR-017a: no write on extra-zone home-note fail-safe path"
+set_test "the sibling gated spec-MOC is untouched after the extra-zone fail-safe"
+assert_eq "$spec_before_l3" "$(shasum "$copy_l3/$RMOCEZ_SPEC1" | awk '{print $1}')" "FR-017a: extra-zone fail-safe aborts the batch before any write"
+set_test "the extra-zone FR-017a error message names the offending home note on stderr"
+assert_contains "$l3err" "extra-zones-roadmap-MOC.md" "FR-017a: stderr must name the malformed extra-zone home note"
+set_test "extra-zone FR-017a --check also fails safe (exit 2, read-only error path)"
+rc_l3c=0; "$GEN" --check "$RMOCEZ_ROOT" >/dev/null 2>&1 || rc_l3c=$?
+assert_eq "2" "$rc_l3c" "FR-017a: --check on an extra-zone malformed home note is exit 2"
 
 test_summary
