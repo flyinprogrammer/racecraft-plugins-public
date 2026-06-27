@@ -218,15 +218,53 @@ generated_title_description() {
     return 2
   fi
   case "$display_title" in
-    Add\ *|Update\ *|Fix\ *|Remove\ *|Support\ *)
-      printf '%s\n' "$display_title"
-      ;;
+    Add\ *) printf 'Add %s\n' "$(sentence_case_title "${display_title#Add }")" ;;
+    Update\ *) printf 'Update %s\n' "$(sentence_case_title "${display_title#Update }")" ;;
+    Fix\ *) printf 'Fix %s\n' "$(sentence_case_title "${display_title#Fix }")" ;;
+    Remove\ *) printf 'Remove %s\n' "$(sentence_case_title "${display_title#Remove }")" ;;
+    Support\ *) printf 'Support %s\n' "$(sentence_case_title "${display_title#Support }")" ;;
     *)
-      printf 'Add %s%s\n' \
-        "$(printf '%s' "${display_title%"${display_title#?}"}" | tr '[:upper:]' '[:lower:]')" \
-        "${display_title#?}"
+      printf 'Add %s\n' "$(sentence_case_title "$display_title")"
       ;;
   esac
+}
+
+sentence_case_title() {
+  local input="$1" token output="" separator=""
+  for token in $input; do
+    output="${output}${separator}$(sentence_case_token "$token")"
+    separator=" "
+  done
+  printf '%s\n' "$output"
+}
+
+sentence_case_token() {
+  local token="$1" segment rest output="" separator="" normalized remainder
+  while :; do
+    segment="${token%%-*}"
+    if [ "$segment" = "$token" ]; then
+      rest=""
+    else
+      rest="${token#*-}"
+    fi
+
+    remainder="${segment#?}"
+    if [[ "$segment" =~ [[:upper:]] && ! "$segment" =~ [[:lower:]] ]]; then
+      normalized="$segment"
+    elif [[ "$remainder" =~ [[:upper:]] ]]; then
+      normalized="$segment"
+    else
+      normalized="$(printf '%s' "$segment" | tr '[:upper:]' '[:lower:]')"
+    fi
+
+    output="${output}${separator}${normalized}"
+    if [ -z "$rest" ]; then
+      break
+    fi
+    token="$rest"
+    separator="-"
+  done
+  printf '%s' "$output"
 }
 
 conventional_scope_from_feature_dir() {
@@ -241,6 +279,9 @@ conventional_scope_from_feature_dir() {
   elif [[ "$base" =~ ^[Dd][Oo][Cc]-([0-9A-Za-z]+)(-|$) ]]; then
     spec_suffix="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:lower:]' '[:upper:]')"
     printf 'DOC-%s\n' "$spec_suffix"
+  elif [[ "$base" =~ ^[Xx][Pp][Ll][Aa][Tt]-([0-9A-Za-z]+)(-|$) ]]; then
+    spec_suffix="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:lower:]' '[:upper:]')"
+    printf 'XPLAT-%s\n' "$spec_suffix"
   else
     printf 'speckit-pro\n'
   fi
