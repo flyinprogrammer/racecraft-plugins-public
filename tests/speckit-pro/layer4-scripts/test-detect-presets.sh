@@ -89,7 +89,7 @@ schema_version: "9.9.9"
 
 preset:
   id: "claude-ask-questions"
-  version: "1.0.0"
+  version: "1.0.0" # Required semantic version
 YAML
 output=$(run_in "$dir")
 assert_contains "$output" '"version":"1.0.0"'

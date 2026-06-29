@@ -10,6 +10,23 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/specify-cli.sh"
 
+extract_preset_version() {
+  local preset_file="$1"
+  awk '
+    /^[[:space:]]*version:[[:space:]]*/ {
+      sub(/^[[:space:]]*version:[[:space:]]*/, "")
+      sub(/[[:space:]]+#.*$/, "")
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+      quote = substr($0, 1, 1)
+      if (length($0) >= 2 && (quote == "\"" || quote == sprintf("%c", 39)) && substr($0, length($0), 1) == quote) {
+        $0 = substr($0, 2, length($0) - 2)
+      }
+      print
+      exit
+    }
+  ' "$preset_file" 2>/dev/null
+}
+
 # Detect presets — build a jq-safe JSON array
 presets_json="[]"
 if ls .specify/presets/*/preset.yml >/dev/null 2>&1; then
@@ -23,9 +40,8 @@ if ls .specify/presets/*/preset.yml >/dev/null 2>&1; then
     # nested schema and a flat top-level `version:` match, and require the literal
     # `version:` immediately after the optional indent so `schema_version:` is
     # excluded. Mirrors installed_version() in install-curated-set.sh.
-    version=$(grep -E '^[[:space:]]*version:' "$preset_file" 2>/dev/null | head -1 \
-      | sed -E 's/^[[:space:]]*version:[[:space:]]*//; s/^"//; s/"$//; s/^'\''//; s/'\''$//' \
-      || echo "unknown")
+    version=$(extract_preset_version "$preset_file" || echo "")
+    version="${version:-unknown}"
     templates=$(grep -A1 'replaces:' "$preset_file" 2>/dev/null | grep -v 'replaces:' | sed 's/.*"\([^"]*\)".*/\1/' | tr '\n' ',' | sed 's/,$//' || echo "")
     # Use jq to safely build each preset object (escapes all string values)
     item=$(jq -cn \

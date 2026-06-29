@@ -164,7 +164,7 @@ schema_version: "9.9.9"
 
 preset:
   id: "claude-ask-questions"
-  version: "1.0.0"
+  version: "1.0.0" # Required semantic version
 YAML
 
 echo "v1.0.1" > "$env2/gh-fixtures/release-list/alpha_review.txt"
@@ -201,7 +201,7 @@ section "check mode — flat (legacy) preset schema"
 # caught alongside the nested-schema coverage above.
 env_flat=$(new_env "flat-preset")
 mkdir -p "$env_flat/.specify/presets/claude-ask-questions"
-echo 'version: "1.0.0"' > "$env_flat/.specify/presets/claude-ask-questions/preset.yml"
+echo "version: '1.0.0' # legacy comment" > "$env_flat/.specify/presets/claude-ask-questions/preset.yml"
 echo "v1.0.0" > "$env_flat/gh-fixtures/release-list/alpha_preset.txt"
 
 result=0
