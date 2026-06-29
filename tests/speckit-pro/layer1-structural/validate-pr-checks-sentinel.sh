@@ -116,7 +116,7 @@ fi
 section "pr-checks.yml — Sentinel Job Dependencies"
 
 set_test "sentinel depends on detect job"
-assert_contains "$CONTENT" "needs: [detect, test]"
+assert_contains "$CONTENT" "needs: [detect, test, test-latest-jq]"
 
 set_test "sentinel runs if: always()"
 assert_contains "$CONTENT" "if: always()"
@@ -132,8 +132,14 @@ assert_contains "$CONTENT" 'detect_result'
 set_test "sentinel checks test_result for success or skipped"
 assert_contains "$CONTENT" 'test_result'
 
+set_test "sentinel checks latest_jq_result for success or skipped"
+assert_contains "$CONTENT" 'latest_jq_result'
+
 set_test "sentinel exits 0 on success or skipped"
 assert_contains "$CONTENT" '"success" || "$test_result" == "skipped"'
+
+set_test "sentinel exits 0 on latest jq success or skipped"
+assert_contains "$CONTENT" '"success" || "$latest_jq_result" == "skipped"'
 
 set_test "sentinel exits 1 on detect failure"
 assert_contains "$CONTENT" '"failure"'

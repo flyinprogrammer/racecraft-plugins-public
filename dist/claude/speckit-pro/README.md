@@ -44,7 +44,23 @@ You need:
 - GitHub Spec Kit installed from the official GitHub source
 - A repository initialized for Spec Kit
 - `gh` for PR creation and review-comment workflows
-- `jq` for validation scripts
+- Bash 4.3 or newer for the shell validation and planning scripts
+- `jq` 1.6 or newer for JSON validation and emitted workflow state
+- `git` for branch, diff, reviewability, and workflow-state checks
+- Python 3 for preset installation and repository validation helpers
+- `sha256sum` or `shasum` for PR-packet fingerprint checks
+- Standard Unix text tools, including version-aware `sort -V`
+
+From a source checkout, before running the deterministic test suite, use the
+repository toolchain preflight:
+
+```bash
+bash tests/speckit-pro/check-toolchain.sh --mode tests
+```
+
+Maintainer-only docs validation also uses Node 22 or newer, Corepack,
+`pnpm@10.25.0`, and Playwright. Those tools are not required just to install or
+run the plugin in a project.
 
 Spec Kit's official docs recommend installing from the GitHub repository. This
 plugin's examples use the same GitHub source:

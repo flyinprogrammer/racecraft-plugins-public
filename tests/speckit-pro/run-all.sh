@@ -128,6 +128,12 @@ should_run() {
   fi
 }
 
+if [ "${SPECKIT_SKIP_TOOLCHAIN_CHECK:-0}" != "1" ]; then
+  if should_run 1 || should_run 4 || should_run 5 || should_run 7; then
+    bash "$TESTS_DIR/check-toolchain.sh" --mode tests
+  fi
+fi
+
 # ─────────────────────────────────────────
 # Layer 1: Structural Validation
 # ─────────────────────────────────────────
@@ -220,6 +226,7 @@ if should_run 4; then
     "$TESTS_DIR/layer4-scripts/test-resolve-confidence-mode.sh"
     "$TESTS_DIR/layer4-scripts/test-detect-commands.sh"
     "$TESTS_DIR/layer4-scripts/test-check-prerequisites.sh"
+    "$TESTS_DIR/layer4-scripts/test-check-toolchain.sh"
     "$TESTS_DIR/layer4-scripts/test-detect-presets.sh"
     "$TESTS_DIR/layer4-scripts/test-reviewability-gate.sh"
     "$TESTS_DIR/layer4-scripts/test-final-reviewability-backstop.sh"
