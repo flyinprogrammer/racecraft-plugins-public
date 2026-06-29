@@ -2,7 +2,7 @@
 # Spec-level Map of Content (MOC). Frontmatter join-key contract (PRSG-002).
 up: "[Cross-Platform Plugin Runtime Roadmap](../../docs/ai/specs/cross-platform-plugin-runtime-technical-roadmap.md)"
 related: []
-status: "In Review (PR 266 pending merge)"
+status: "Complete"
 rank:
 spec_id: "XPLAT-002"
 structureVersion: 1
@@ -19,7 +19,7 @@ slice artifacts in the body below.
 - [Runtime decision](runtime-decision.md)
 - [JavaScript/TypeScript evidence](evidence/javascript-typescript.md)
 - [Python evidence](evidence/python.md)
-- [Small per-platform binary evidence](evidence/small-per-platform-binary.md)
+- [Rejected small per-platform binary evidence](evidence/small-per-platform-binary.md)
 - [Runner contract](contracts/speckit-pro-runner-contract.md)
 - [Downstream handoff](handoff.md)
 - [Review quickstart](quickstart.md)

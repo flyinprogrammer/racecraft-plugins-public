@@ -14,7 +14,14 @@ release blocker. Each SPEC is prepared for implementation with
 that the plugin can install but core Claude/Codex workflows break when they hit
 Bash-backed helper execution. Refined 2026-06-25 after roadmap audit split the
 runtime decision and supply-chain security model out of the first implementation
-slice.
+slice. Refined 2026-06-28 after XPLAT-003 user-journey analysis clarified that
+the release gate must prove install completeness, first-use success, update, and
+autoheal behavior across Claude Code and Codex, not only native Windows runtime
+execution. Refined again on 2026-06-28 after the runtime decision was reopened:
+the active implementation path is now a Python 3.11+ standard-library runner
+aligned with official Spec Kit / `specify` prerequisites, and the Bash
+deprecation scope includes active build, test, eval, payload, and
+release-readiness gates that validate or publish shipped plugin behavior.
 
 ---
 
@@ -31,7 +38,7 @@ dependency tiers**:
 | 4 | XPLAT-004 | Build the cross-platform runner foundation and parity harness | Sequential after runtime and security decisions |
 | 5 | XPLAT-005 | Port read-only/advisory helpers with fixture parity | Sequential after runner foundation |
 | 6 | XPLAT-006 | Port mutation, install, and PR-emission helpers | Can overlap late XPLAT-005 only after shared runner APIs are stable |
-| 7 | XPLAT-007 | Cut over Claude/Codex surfaces, rebuild payloads, and prove native Windows release readiness | Sequential release gate |
+| 7 | XPLAT-007 | Cut over Claude/Codex surfaces, rebuild payloads, and prove universal install/full-use/update/autoheal release readiness | Sequential release gate |
 
 **Execution Order:** XPLAT-001 -> XPLAT-002 -> XPLAT-003 -> XPLAT-004 -> XPLAT-005 -> XPLAT-006 -> XPLAT-007
 
@@ -40,7 +47,8 @@ dependency tiers**:
 - XPLAT-002 requires XPLAT-001 because the runtime decision must be based on the
   actual active installed-runtime surface, not an assumed helper list.
 - XPLAT-003 requires XPLAT-002 because the supply-chain model depends on the
-  selected runtime, packaging model, and generated artifact categories.
+  selected Python runtime, packaging model, and generated runner-file
+  categories.
 - XPLAT-004 requires XPLAT-002 and XPLAT-003 because the runner must implement
   one selected runtime contract and the first-release security controls.
 - XPLAT-005 requires XPLAT-004 because parity tests need the final runner command
@@ -87,16 +95,72 @@ Bash, Git Bash, WSL, PowerShell, or `jq` as the implementation substrate on
 native Windows, macOS, or Linux. Shells may still exist in a user's environment,
 but SpecKit Pro cannot depend on them for installed plugin runtime behavior.
 
-Repository-only maintainer scripts and GitHub Actions are outside this lane
-unless an active installed plugin skill, agent, hook, or generated payload
-invokes them.
+The selected implementation substrate is Python 3.11+ standard-library code
+through the official Spec Kit / `specify` prerequisite boundary. Active plugin
+build, test, eval, payload-generation, and release-readiness gates that validate
+or publish shipped plugin behavior are inside this lane. Historical/archive
+references and unrelated repository-only shell wrappers may remain only when a
+deterministic guard proves they cannot affect installed plugin behavior,
+generated payloads, test/eval results, or release claims.
+
+## Python Confidence And Proof Boundary
+
+The Python decision has high planning confidence because official Spec Kit /
+`specify` already requires Python 3.11+, and the selected runner uses only
+standard-library behavior. Current confidence is:
+
+- High, approximately 90%, that Python is the right universal dependency for
+  SpecKit Pro because it matches the upstream Spec Kit prerequisite.
+- High, approximately 85-90%, that a Python stdlib runner will behave
+  consistently once the interpreter is launched.
+- Medium, approximately 65-75%, that the full current Claude/Codex plugin user
+  journey works across all target platforms before implementation, because
+  installed-cache launch, generated payload cutover, and native UAT are not yet
+  complete.
+
+The remaining risk is not Python itself. The risk is platform-specific
+interpreter discovery and installed plugin invocation: Windows may need
+`py -3.11`, `python`, or `python3`; macOS/Linux usually use `python3` but PATH
+can vary; launcher permissions, line endings, path handling, and executable
+lookup must be proven from installed Claude and Codex plugin caches. XPLAT-004
+must prove the runner launch path, and XPLAT-007 must prove the full user
+journey before any public native Windows/macOS/Linux claim.
 
 ## Consumer Trust Constraint
 
 After XPLAT-007, public docs and release notes MUST accurately state how the
-runtime artifacts are built, what dependencies they include, what consumers can
+runner files are packaged, what dependencies they include, what consumers can
 verify locally, and which security guarantees are intentionally not claimed.
 Supply-chain guarantees must be implemented before they are marketed.
+
+## Journey-Aligned Release Bar
+
+The XPLAT lane is complete only when the user journey works end to end. Runtime
+replacement is necessary but not sufficient.
+
+- A new user can install the latest tagged SpecKit Pro release for Claude Code,
+  Codex, or both without installing Bash, Git Bash, WSL, PowerShell-specific
+  shims, `jq`, Go, Rust, Zig, or another implementation runtime beyond official
+  Spec Kit / `specify` prerequisites.
+- Claude Code and Codex installs contain 100 percent of expected skills,
+  bundled agents, hooks, generated payload files, runner source or launcher
+  files, manifest entries, and local verification metadata.
+- The first documented workflows succeed: scaffold/status, agent availability
+  checks, autopilot dry-run, PR-packet/UAT generation paths, and safe no-op
+  validation paths.
+- Scaffold/status/autopilot call a shared doctor/preflight contract before
+  meaningful work. The doctor must detect stale plugin versions, missing bundled
+  agents, missing runner files, missing generated payload files, and
+  unsupported platform claims; it auto-repairs only safe gaps and gives exact
+  remediation for unsafe gaps.
+- Active build, test, eval, and release-readiness gates that validate or publish
+  shipped plugin behavior run through Python standard-library tooling and do not
+  require Bash, Git Bash, WSL, PowerShell helper scripts, or `jq`.
+- The update path verifies that Claude Code and Codex are both on the latest
+  tagged plugin release and that generated payloads match the release manifest.
+- UAT evidence is readable and complete. Runbooks must not ship placeholder PR
+  fields, raw implementation anchors, empty expected-result sections, or
+  unfilled platform/product rows.
 
 ---
 
@@ -121,7 +185,7 @@ XPLAT-005 Read-Only Helper Port
 XPLAT-006 Mutation, Install, and PR-Emission Helper Port
     |
     v
-XPLAT-007 Claude/Codex Cutover and Native Windows Release Gate
+XPLAT-007 Claude/Codex Cutover and Universal Install Release Gate
     |
     v
 PUBLIC RELEASE UNBLOCKED
@@ -134,12 +198,12 @@ PUBLIC RELEASE UNBLOCKED
 | Spec | Name | Status | Workflow File | Next Phase |
 |---|---|---|---|---|
 | XPLAT-001 | Runtime Inventory and Constraints | Complete | `.process/XPLAT-001-workflow.md` | Inventory report: `docs/ai/research/cross-platform-runtime-inventory.md` |
-| XPLAT-002 | Runtime Implementation Options and Contract Decision | In Review (PR #266 pending merge) | `.process/XPLAT-002-workflow.md` | PR #266 selects the Go native runtime model and runner contract; downstream work remains blocked until merge |
-| XPLAT-003 | Supply-Chain Security and Consumer Trust Model | Pending | — | Blocked by XPLAT-002 runtime decision; must finish before runner foundation |
-| XPLAT-004 | Cross-Platform Runner Foundation | Pending | — | Blocked by XPLAT-002 runtime decision and XPLAT-003 security model |
+| XPLAT-002 | Runtime Implementation Options and Contract Decision | Complete | `.process/XPLAT-002-workflow.md` | Runtime decision amended 2026-06-28 to Python stdlib runner aligned with official Spec Kit prerequisites |
+| XPLAT-003 | Supply-Chain Security and Consumer Trust Model | Complete | `.process/XPLAT-003-workflow.md` | Decision artifacts and platform user journey supplement complete; first-release controls and downstream ownership recorded |
+| XPLAT-004 | Cross-Platform Runner Foundation | Pending | — | Blocked by XPLAT-003 security model |
 | XPLAT-005 | Read-Only Helper Port | Pending | — | Blocked by XPLAT-004 runner foundation |
 | XPLAT-006 | Mutation, Install, and PR-Emission Helper Port | Pending | — | Blocked by XPLAT-004; should reuse XPLAT-005 parity harness |
-| XPLAT-007 | Claude/Codex Cutover and Native Windows Release Gate | Pending | — | Blocked by XPLAT-005 and XPLAT-006 |
+| XPLAT-007 | Claude/Codex Cutover and Universal Install Release Gate | Pending | — | Blocked by XPLAT-005 and XPLAT-006 |
 
 **Status Legend:** Pending | In Progress | In Review | Complete | Blocked
 
@@ -172,7 +236,8 @@ implementation.
   Unix-path, `chmod`, and line-ending assumptions, including generated payloads,
   public docs, tests, fixtures, and historical/archive references.
 - Classify references as active runtime, generated payload, public docs,
-  repository-only maintainer tooling, tests/fixtures, or historical/archive.
+  active test/eval gate, active build/release gate, unrelated repository-only
+  maintainer tooling, temporary parity fixture, or historical/archive.
 - Require static caller-to-callee invocation-trace evidence before marking any
   finding as a proven active installed-runtime dependency.
 - Map every active runtime dependency to an owner category: read-only helper,
@@ -216,9 +281,10 @@ implementation.
 - A maintainer can see the full active runtime surface and no longer has to
   infer which Bash references matter.
 - XPLAT-002 has a clear runtime evaluation rubric and candidate evidence list.
-- XPLAT-003 has a clear security/trust evaluation rubric and artifact list.
+- XPLAT-003 has a clear security/trust evaluation rubric and runner-file list.
 - Every active Bash dependency has a provisional owner spec: XPLAT-005,
-  XPLAT-006, XPLAT-007, or repository-only exclusion.
+  XPLAT-006, XPLAT-007, active-gate migration, or unrelated repository-only
+  exclusion.
 
 **Completion Handoff:**
 
@@ -227,7 +293,7 @@ implementation.
   quoting/operators, Unix paths, file-mode changes, and newline policy.
 - Active installed-runtime rows map to XPLAT-005 read-only helper work,
   XPLAT-006 mutation/install/PR-emission helper work, and XPLAT-007 generated
-  payload cutover guidance.
+  payload, test/eval, release-readiness, and final cutover guidance.
 - XPLAT-002 should use the non-scoring runtime rubric in the report.
 - XPLAT-003 should use the non-scoring supply-chain rubric in the report.
 - XPLAT-001 did not port helpers to a replacement runtime, change active
@@ -241,10 +307,17 @@ implementation.
 
 **Priority:** P1 | **Depends On:** XPLAT-001 | **Enables:** XPLAT-004, XPLAT-005, XPLAT-006, XPLAT-007
 
-**Status:** In Review (PR #266 pending merge). Scaffolded on 2026-06-26 in branch `codex/xplat-002-runtime-implementation-options-contract-decision`; workflow file is `docs/ai/specs/.process/XPLAT-002-workflow.md`; design concept is `docs/ai/specs/.process/XPLAT-002-design-concept.md`.
+**Status:** Complete. PR #266 merged on 2026-06-27 at `fff4d6b5`.
+Scaffolded on 2026-06-26 in branch
+`codex/xplat-002-runtime-implementation-options-contract-decision`; workflow
+file is `docs/ai/specs/.process/XPLAT-002-workflow.md`; design concept is
+`docs/ai/specs/.process/XPLAT-002-design-concept.md`; runtime decision is
+`specs/xplat-002-runtime-implementation-options-contract-decision/runtime-decision.md`.
 
 **Goal:** Research and evaluate implementation options, then select the one
-runtime contract that all later specs must implement.
+runtime contract that all later specs must implement. The amended and current
+contract is Python 3.11+ standard-library source; compiled per-platform binaries
+are rejected historical candidates, not XPLAT fallbacks.
 
 **Reviewability Budget:** Primary surface: docs/process |
 Projected reviewable LOC: 0-120 |
@@ -254,8 +327,8 @@ Budget result: within budget (decision record and probes)
 
 **Scope:**
 
-- Compare credible implementation strategies including JavaScript/TypeScript,
-  Python, and small per-platform binaries.
+- Record the historical comparison of JavaScript/TypeScript, Python, and small
+  per-platform binaries, then lock the Python standard-library source contract.
 - Evaluate each candidate against the XPLAT-001 rubric: platform behavior,
   Claude/Codex invocation reliability, installed-cache pathing, packaging,
   dependency management, update path, performance, diagnostics, and maintainer
@@ -263,6 +336,8 @@ Budget result: within budget (decision record and probes)
 - Run smoke probes or gather documented platform evidence where invocation
   mechanics are uncertain.
 - Select one canonical runtime strategy and document rejected options.
+- State that compiled binaries are not an allowed compatibility adapter or
+  downstream fallback within XPLAT.
 - Define the command contract: entrypoint name, helper dispatch, argument
   parsing, JSON stdin/stdout envelopes, exit-code mapping, stderr diagnostics,
   path normalization, subprocess execution rules, prerequisite reporting, and
@@ -299,7 +374,11 @@ Budget result: within budget (decision record and probes)
 
 **Priority:** P1 | **Depends On:** XPLAT-002 | **Enables:** XPLAT-004, XPLAT-007
 
-**Status:** Pending.
+**Status:** Complete. Implemented on 2026-06-27 in branch
+`codex/xplat-003-supply-chain-security-and-consumer-trust-model`; workflow file
+is `docs/ai/specs/.process/XPLAT-003-workflow.md`; design concept is
+`docs/ai/specs/.process/XPLAT-003-design-concept.md`; durable decision artifacts
+live under `specs/xplat-003-supply-chain-security-and-consumer-trust-model/`.
 
 **Goal:** Choose the security and provenance approach for the new runtime so
 consumers can understand what they are installing and what the project verifies
@@ -347,7 +426,7 @@ Budget result: within budget (decision record and policy)
 **Done When:**
 
 - XPLAT-004 knows which security controls must be built into the runner and
-  generated runtime artifacts.
+  generated runner files.
 - XPLAT-007 knows which release/docs claims are allowed.
 - Deferred supply-chain hardening is explicit and justified.
 
@@ -371,25 +450,29 @@ starts landing here.
 
 **Scope:**
 
-- Add the selected runtime's source layout under `speckit-pro/` with one stable
-  plugin entrypoint for helper execution.
+- Add the selected Python runner source layout under `speckit-pro/` with one
+  stable plugin entrypoint for helper execution.
 - Implement shared modules for path handling, JSON envelope construction,
   process execution without a shell, filesystem reads/writes, and platform
   detection.
 - Implement a preflight/helper-discovery command that returns runtime,
   platform, executable availability, plugin root, missing prerequisites, and
   runtime version as structured JSON.
+- Verify official Spec Kit prerequisites: Python 3.11+ and a working `specify`
+  command. The runner must fail closed with remediation when either is missing.
 - Add a parity harness that can run old Bash helpers and new runner helpers over
   fixtures while Bash still exists.
+- Add Python standard-library test/eval runner patterns that later specs can use
+  to replace Bash-only Layer 4 helper tests and AI-eval wrappers.
 - Implement the XPLAT-003 first-release controls that apply to runtime source,
-  dependencies, and generated runtime artifacts.
+  dependencies, and generated runner files.
 - Document how Claude and Codex skills will invoke the runner after cutover.
 
 **Out of Scope:**
 
 - Porting existing helper behavior except tiny smoke/preflight helpers needed to
   prove the runner contract.
-- Removing Bash helpers.
+- Removing Bash helpers or Bash-only release gates.
 - Updating public install docs.
 - Implementing release automation controls that XPLAT-003 assigns outside the
   runner foundation.
@@ -404,8 +487,12 @@ starts landing here.
 
 **Done When:**
 
-- The runner executes on native Windows, macOS, and Linux.
+- The Python runner executes on native Windows, macOS, and Linux from installed
+  Claude and Codex plugin caches without Bash, PowerShell helper scripts, `jq`,
+  or plugin-only package restoration.
 - The parity harness can compare old/new helper output deterministically.
+- At least one Python test/eval runner path exists so downstream helper ports do
+  not need to preserve Bash-only release gates.
 - First-release supply-chain controls assigned to the runner are in place.
 - No active skill has been switched yet; this spec only creates the safe runway.
 
@@ -438,7 +525,10 @@ inventory shows this cannot land reviewably.
   substitution with structured runtime APIs.
 - Add fixture parity for success, missing input, malformed input, and
   platform-specific path cases.
-- Keep the Bash helpers as temporary reference implementations until XPLAT-007.
+- Port the corresponding Layer 4/unit fixtures into Python standard-library
+  tests so the Python tests become the release gate after parity is accepted.
+- Keep the Bash helpers only as temporary reference implementations until
+  XPLAT-007.
 
 **Out of Scope:**
 
@@ -468,6 +558,8 @@ inventory shows this cannot land reviewably.
 
 - All read-only helpers have runner equivalents with fixture parity.
 - Native Windows fixture runs pass without Bash or `jq`.
+- Read-only helper release gates use Python tests; Bash fixtures are retained
+  only as temporary parity or archived historical evidence.
 
 ---
 
@@ -492,12 +584,21 @@ if XPLAT-001 inventory shows the combined scope is too large.
 - Port helpers that write files, update state, install Codex agents, manage the
   curated set, migrate or relocate process artifacts, generate PR bodies, emit
   split-PR state, or perform restack planning/apply operations.
+- Port install-completeness and repair helpers that verify the expected Claude
+  Code and Codex bundled-agent set from a generated inventory or manifest,
+  rather than from a stale hardcoded list.
+- Add the shared doctor/preflight contract used by scaffold/status/autopilot to
+  detect stale releases, missing bundled agents, missing runner files,
+  missing generated payload files, and unsafe repair cases before workflow
+  execution continues.
 - Preserve atomic write and dry-run/apply semantics where the Bash helper
   currently promises them.
 - Preserve PR packet, workflow-contract, split-PR, restack, install, and
   relocation JSON schemas.
 - Add parity fixtures for success, no-op, dry-run, invalid input,
   missing-prerequisite, dirty-worktree, and partial-failure cases.
+- Port mutation-helper unit and integration-style tests that validate shipped
+  behavior to Python standard-library gates before the Bash helpers are removed.
 - Keep live network or GitHub mutation behind the same approval and dry-run
   boundaries as today.
 
@@ -505,8 +606,8 @@ if XPLAT-001 inventory shows the combined scope is too large.
 
 - Active skill cutover.
 - Public release docs.
-- Replacing repository-only release scripts unless they are invoked by installed
-  plugin runtime behavior.
+- Replacing unrelated repository-only release scripts unless they build,
+  publish, test, evaluate, or validate shipped plugin behavior.
 
 **Likely Helper Set:**
 
@@ -520,24 +621,33 @@ if XPLAT-001 inventory shows the combined scope is too large.
 - `relocate-process-artifacts`
 - `install-curated-set`
 - `install-codex-agents`
+- `doctor` / install-completeness repair helpers if introduced by XPLAT-004
 - coach fixup/preset helpers that write files
 
 **Done When:**
 
 - Every mutation-capable installed-runtime helper has a runner equivalent.
+- Claude Code and Codex install helpers verify the complete expected bundled
+  agent and generated-payload set from a source-controlled manifest or generated
+  inventory.
+- Scaffold/status/autopilot have a shared doctor/preflight contract with
+  deterministic safe-repair and manual-remediation outcomes.
 - Fixture parity covers destructive and dry-run paths before active cutover.
+- Mutation-helper release gates use Python tests; Bash tests are retained only
+  as temporary parity or archived historical evidence.
 
 ---
 
-### XPLAT-007: Claude/Codex Cutover and Native Windows Release Gate
+### XPLAT-007: Claude/Codex Cutover and Universal Install Release Gate
 
 **Priority:** P1 | **Depends On:** XPLAT-005, XPLAT-006 | **Enables:** Public release readiness
 
 **Status:** Pending.
 
 **Goal:** Switch active Claude and Codex plugin runtime surfaces to the
-cross-platform runner and prove public-release readiness with native Windows UAT
-and accurate consumer-trust documentation.
+cross-platform runner and prove public-release readiness with complete
+Claude/Codex installs, universal first-use journeys, update/repair behavior,
+native Windows UAT, and accurate consumer-trust documentation.
 
 **Reviewability Budget:** Primary surfaces: docs/process + seed/config |
 Projected reviewable LOC: 250-500 |
@@ -551,21 +661,38 @@ split only if generated payload rebuilds make the review packet too large.
 - Update active Claude skills, Codex skills, agents, hooks, and install guidance
   to invoke the runner instead of Bash helpers.
 - Rebuild Claude and Codex generated payloads from source.
+- Add generated-payload gates proving Claude Code and Codex payloads contain the
+  same release version, every expected bundled agent, every expected hook, every
+  required runner file, and the release manifest/checksum metadata assigned
+  by XPLAT-003.
 - Remove Bash and `jq` from installed plugin runtime prerequisites.
 - Add deterministic guards that fail when active installed-runtime guidance
   reintroduces `bash`, `.sh`, `jq`, shell interpolation, or Unix-only path
   assumptions outside the XPLAT-001 allowlist.
-- Add or update docs so Windows users see the supported native path, not a WSL or
-  Git Bash workaround.
+- Replace active Bash-based test/eval/build/release-readiness gates for shipped
+  plugin behavior with Python standard-library commands, including the payload
+  builder, marketplace/version sync checks, Layer 1 structural checks, Layer 4
+  helper tests, AI-eval runners, tool-scoping checks, integration/parity suites,
+  and the top-level test runner.
+- Add or update docs so Windows users see the supported native path, any
+  explicitly supported WSL path is labeled as optional, and macOS/Linux users see
+  the same install-to-first-use journey.
 - Document the implemented XPLAT-003 security model in public docs and release
   notes without overstating guarantees.
 - Capture manual UAT evidence for Claude and Codex on native Windows, macOS, and
-  Linux.
+  Linux covering install, bundled-agent verification, scaffold/status,
+  autopilot dry-run, update to the latest tagged release, and safe repair of an
+  intentionally incomplete install.
+- Require UAT runbooks to be filled, readable, and release-reviewable, with no
+  placeholder PR fields, raw HTML anchors, empty expected-result sections, or
+  unfilled platform/product rows.
 
 **Out of Scope:**
 
-- Replacing GitHub Actions.
-- Replacing repository maintainer scripts not shipped into the installed plugin.
+- Replacing GitHub Actions YAML or minimal shell wrappers that only dispatch to
+  Python gates and contain no plugin validation logic.
+- Replacing unrelated repository maintainer scripts that do not build, publish,
+  test, evaluate, or validate shipped plugin behavior.
 - Changing GitHub Spec Kit's own generated `.specify/scripts/bash/` helpers in
   consumer projects.
 - Claiming cryptographic guarantees that were not implemented.
@@ -586,14 +713,30 @@ split only if generated payload rebuilds make the review packet too large.
 - `dist/claude/speckit-pro/**`
 - `dist/codex/speckit-pro/**`
 - `tests/speckit-pro/**`
+- `scripts/build-plugin-payloads.sh` -> Python standard-library replacement
+- `scripts/sync-marketplace-versions.sh` -> Python standard-library replacement
+- `.github/workflows/**` only where workflow steps must call the new Python
+  gates instead of Bash implementations
 
 **Done When:**
 
 - Native Windows, macOS, and Linux UAT all pass for installed Claude and Codex
   plugin workflows without Bash, Git Bash, WSL, PowerShell-specific commands, or
   `jq`.
+- Claude Code and Codex installs are proven 100 percent complete for skills,
+  bundled agents, hooks, generated payloads, runner files, and XPLAT-003
+  verification metadata.
+- Scaffold/status/autopilot doctor checks detect stale or incomplete installs
+  and either autoheal safe gaps or produce exact manual remediation steps.
+- Users can update both Claude Code and Codex installs to the latest tagged
+  release and rerun the first-use workflows successfully.
 - A release-readiness guard blocks publication if active runtime Bash
-  dependencies are reintroduced.
+  dependencies, incomplete generated payloads, missing bundled agents, stale
+  version metadata, or incomplete UAT runbooks are detected.
+- The active test/eval/build/release-readiness suite for shipped plugin behavior
+  has no Bash-only gate. Any remaining Bash is historical/archive text,
+  temporary parity evidence explicitly outside the release gate, or an unrelated
+  wrapper proven not to validate shipped behavior.
 - Public docs and release notes match the implemented consumer-trust model.
 
 ---
@@ -602,9 +745,11 @@ split only if generated payload rebuilds make the review packet too large.
 
 SpecKit Pro should not be marketed as a public, cross-platform Claude/Codex
 plugin until XPLAT-007 is complete. Before then, native Windows support is not a
-documentation problem; it is an implementation gap. Consumer trust also remains a
-planning gap until XPLAT-003 is complete and an implementation gap until its
-required controls are wired into XPLAT-004 and XPLAT-007.
+documentation problem; it is an implementation gap. A complete public claim also
+requires proven Claude/Codex install completeness, latest-tag update behavior,
+doctor/autoheal behavior, and filled UAT runbooks. Consumer trust is now
+specified by XPLAT-003, but it remains an implementation gap until its required
+controls are wired into XPLAT-004 and XPLAT-007.
 
 ## References
 
@@ -615,3 +760,13 @@ required controls are wired into XPLAT-004 and XPLAT-007.
 - Current plugin README lists `jq` as a validation-script prerequisite.
 - Current helper scripts under `speckit-pro/skills/**/scripts/`,
   `speckit-pro/codex-skills/**/scripts/`, and `speckit-pro/scripts/` are Bash.
+- Current test and eval gates under `tests/speckit-pro/**`, including
+  `run-all.sh`, Layer 1 structural tests, Layer 2/3 AI-eval runners, Layer 4
+  helper tests, Layer 5 tool scoping, Layer 6 efficiency, Layer 7 integration,
+  and Layer 8 parity, are Bash and must be ported or removed from the active
+  release gate before XPLAT-007 can pass.
+- Current payload/release helper scripts such as
+  `scripts/build-plugin-payloads.sh`, `scripts/refresh-local-plugin.sh`, and
+  `scripts/sync-marketplace-versions.sh` are Bash and must have Python
+  standard-library replacements when they build, install-test, sync, or validate
+  shipped plugin payloads.
