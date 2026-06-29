@@ -83,6 +83,23 @@ resolve_ref() {
   return 1
 }
 
+extract_preset_version() {
+  local preset_yml="$1"
+  awk '
+    /^[[:space:]]*version:[[:space:]]*/ {
+      sub(/^[[:space:]]*version:[[:space:]]*/, "")
+      sub(/[[:space:]]+#.*$/, "")
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+      quote = substr($0, 1, 1)
+      if (length($0) >= 2 && (quote == "\"" || quote == sprintf("%c", 39)) && substr($0, length($0), 1) == quote) {
+        $0 = substr($0, 2, length($0) - 2)
+      }
+      print
+      exit
+    }
+  ' "$preset_yml" 2>/dev/null
+}
+
 # Print the installed version of "$2" (id) for kind "$1" (extension|preset),
 # or empty if not installed. Reads .specify/ directly because `specify list`
 # has no machine-readable output mode in v0.8.13.
@@ -95,9 +112,12 @@ installed_version() {
   else
     local preset_yml="${SPECIFY_PRESETS_DIR:-.specify/presets}/$id/preset.yml"
     [[ -f "$preset_yml" ]] || { echo ""; return; }
-    grep -E '^version:' "$preset_yml" 2>/dev/null | head -1 \
-      | sed -E 's/^version:[[:space:]]*//; s/^"//; s/"$//; s/^'\''//; s/'\''$//' \
-      || echo ""
+    # The preset.yml schema nests `version:` under `preset:`, so it arrives
+    # indented (e.g. `  version: "1.0.0"`). Allow leading whitespace so both the
+    # nested schema and a flat top-level `version:` match. `schema_version:` is
+    # still excluded — after the optional indent the literal `version:` must
+    # follow immediately, which `schema_version:` does not.
+    extract_preset_version "$preset_yml" || echo ""
   fi
 }
 

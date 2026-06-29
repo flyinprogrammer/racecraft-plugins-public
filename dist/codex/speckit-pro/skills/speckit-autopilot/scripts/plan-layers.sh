@@ -1257,26 +1257,29 @@ if [ "$MODE" = "marker-plan" ]; then
       ((($left - $right) | length) == ($left | length)) and ((($right - $left) | length) == ($right | length));
     def has_shared_signal($tasks):
       any($tasks[]?; (.title // "" | test("shared|hazard|migration|atomic"; "i")));
+    def task_halves($tasks):
+      (($tasks | length) / 2 | floor) as $mid
+      | {left: $tasks[0:$mid], right: $tasks[$mid:]};
     def can_safe_split($tasks):
-      ($tasks | length) >= 4
-      and (has_shared_signal($tasks) | not)
-      and (($tasks | length) / 2 | floor) as $mid
-      | ($tasks[0:$mid]) as $left
-      | ($tasks[$mid:]) as $right
-      | ($left | length) > 0
-        and ($right | length) > 0
-        and disjoint(files_for($left); files_for($right))
-        and disjoint(tests_for($left); tests_for($right));
+      if (($tasks | length) < 4) or has_shared_signal($tasks) then
+        false
+      else
+        task_halves($tasks) as $halves
+        | (($halves.left | length) > 0)
+          and (($halves.right | length) > 0)
+          and disjoint(files_for($halves.left); files_for($halves.right))
+          and disjoint(tests_for($halves.left); tests_for($halves.right))
+      end;
     def story_is_oversized($inc):
       (($review.marker_estimates[$inc.id].status? // "") == "block") or (($review.marker_estimates[$inc.id].oversized? // false) == true);
     def story_markers($inc):
       $inc.tasks as $tasks
       | if story_is_oversized($inc) then
           if can_safe_split($tasks) then
-            (($tasks | length) / 2 | floor) as $mid
+            task_halves($tasks) as $halves
             | [
-                marker($inc; ($inc.id + "-part1"); "user_story_part"; $inc.id; $tasks[0:$mid]; "safe_split"; {parent_marker_id: $inc.id, part: 1}; []),
-                marker($inc; ($inc.id + "-part2"); "user_story_part"; $inc.id; $tasks[$mid:]; "safe_split"; {parent_marker_id: $inc.id, part: 2}; [])
+                marker($inc; ($inc.id + "-part1"); "user_story_part"; $inc.id; $halves.left; "safe_split"; {parent_marker_id: $inc.id, part: 1}; []),
+                marker($inc; ($inc.id + "-part2"); "user_story_part"; $inc.id; $halves.right; "safe_split"; {parent_marker_id: $inc.id, part: 2}; [])
               ]
           else
             warning(
