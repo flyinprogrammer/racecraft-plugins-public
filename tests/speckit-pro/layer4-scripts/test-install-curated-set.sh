@@ -159,7 +159,13 @@ cat > "$env2/.specify/extensions/.registry" <<'JSON'
 {"extensions": {"review": {"version": "1.0.1"}, "verify-tasks": {"version": "1.0.0"}}}
 JSON
 mkdir -p "$env2/.specify/presets/claude-ask-questions"
-echo 'version: "1.0.0"' > "$env2/.specify/presets/claude-ask-questions/preset.yml"
+cat > "$env2/.specify/presets/claude-ask-questions/preset.yml" <<'YAML'
+schema_version: "9.9.9"
+
+preset:
+  id: "claude-ask-questions"
+  version: "1.0.0"
+YAML
 
 echo "v1.0.1" > "$env2/gh-fixtures/release-list/alpha_review.txt"
 echo "v1.0.0" > "$env2/gh-fixtures/release-list/alpha_preset.txt"
@@ -176,6 +182,35 @@ set_test "check mode exits 0 when all installed at latest"
 assert_eq "0" "$result" "exit code"
 
 set_test "check mode produces no 'would' lines when current"
+assert_not_contains "$output" "would install"
+assert_not_contains "$output" "would upgrade"
+
+# Regression guard for nested preset.yml parsing: the schema_version sentinel
+# (9.9.9) must never surface. If installed_version() read schema_version instead
+# of the nested preset.version (1.0.0), it would differ from the latest ref and
+# emit a "would upgrade 9.9.9 → ..." line, leaking the sentinel into output.
+set_test "check mode reads nested preset.version, not schema_version"
+assert_not_contains "$output" "9.9.9"
+
+# ─────────────────────────────────────────
+section "check mode — flat (legacy) preset schema"
+# ─────────────────────────────────────────
+
+# installed_version() still supports a flat top-level `version:` (the pre-nested
+# schema). Keep a fixture for that path so a future regression in flat parsing is
+# caught alongside the nested-schema coverage above.
+env_flat=$(new_env "flat-preset")
+mkdir -p "$env_flat/.specify/presets/claude-ask-questions"
+echo 'version: "1.0.0"' > "$env_flat/.specify/presets/claude-ask-questions/preset.yml"
+echo "v1.0.0" > "$env_flat/gh-fixtures/release-list/alpha_preset.txt"
+
+result=0
+output=$(run_script "$env_flat" --mode=check --accept=claude-ask-questions 2>&1) || result=$?
+
+set_test "check mode reads flat top-level preset.version"
+assert_eq "0" "$result" "exit code"
+
+set_test "flat-schema preset current — no 'would' lines"
 assert_not_contains "$output" "would install"
 assert_not_contains "$output" "would upgrade"
 

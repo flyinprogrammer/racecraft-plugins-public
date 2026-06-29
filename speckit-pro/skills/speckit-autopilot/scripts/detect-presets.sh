@@ -17,8 +17,15 @@ if ls .specify/presets/*/preset.yml >/dev/null 2>&1; then
   for preset_file in .specify/presets/*/preset.yml; do
     preset_dir=$(dirname "$preset_file")
     preset_name=$(basename "$preset_dir")
-    # Extract key fields from YAML (basic parsing without yq)
-    version=$(grep -m1 'version:' "$preset_file" 2>/dev/null | sed 's/.*version: *"\?\([^"]*\)"\?.*/\1/' || echo "unknown")
+    # Extract key fields from YAML (basic parsing without yq).
+    # The preset.yml schema nests `version:` under `preset:`, so it arrives
+    # indented (e.g. `  version: "1.0.0"`). Allow leading whitespace so both the
+    # nested schema and a flat top-level `version:` match, and require the literal
+    # `version:` immediately after the optional indent so `schema_version:` is
+    # excluded. Mirrors installed_version() in install-curated-set.sh.
+    version=$(grep -E '^[[:space:]]*version:' "$preset_file" 2>/dev/null | head -1 \
+      | sed -E 's/^[[:space:]]*version:[[:space:]]*//; s/^"//; s/"$//; s/^'\''//; s/'\''$//' \
+      || echo "unknown")
     templates=$(grep -A1 'replaces:' "$preset_file" 2>/dev/null | grep -v 'replaces:' | sed 's/.*"\([^"]*\)".*/\1/' | tr '\n' ',' | sed 's/,$//' || echo "")
     # Use jq to safely build each preset object (escapes all string values)
     item=$(jq -cn \

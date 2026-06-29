@@ -95,8 +95,13 @@ installed_version() {
   else
     local preset_yml="${SPECIFY_PRESETS_DIR:-.specify/presets}/$id/preset.yml"
     [[ -f "$preset_yml" ]] || { echo ""; return; }
-    grep -E '^version:' "$preset_yml" 2>/dev/null | head -1 \
-      | sed -E 's/^version:[[:space:]]*//; s/^"//; s/"$//; s/^'\''//; s/'\''$//' \
+    # The preset.yml schema nests `version:` under `preset:`, so it arrives
+    # indented (e.g. `  version: "1.0.0"`). Allow leading whitespace so both the
+    # nested schema and a flat top-level `version:` match. `schema_version:` is
+    # still excluded — after the optional indent the literal `version:` must
+    # follow immediately, which `schema_version:` does not.
+    grep -E '^[[:space:]]*version:' "$preset_yml" 2>/dev/null | head -1 \
+      | sed -E 's/^[[:space:]]*version:[[:space:]]*//; s/^"//; s/"$//; s/^'\''//; s/'\''$//' \
       || echo ""
   fi
 }
