@@ -81,6 +81,22 @@ assert_contains "$output" '"has_presets":true'
 set_test "One preset — preset name detected"
 assert_contains "$output" "tdd"
 
+set_test "Nested preset.version detected when schema_version is present"
+dir="$FIXTURE_DIR/schema-version"
+mkdir -p "$dir/.specify/presets/claude-ask-questions"
+cat > "$dir/.specify/presets/claude-ask-questions/preset.yml" << 'YAML'
+schema_version: "9.9.9"
+
+preset:
+  id: "claude-ask-questions"
+  version: "1.0.0" # Required semantic version
+YAML
+output=$(run_in "$dir")
+assert_contains "$output" '"version":"1.0.0"'
+
+set_test "schema_version is not mistaken for preset.version"
+assert_not_contains "$output" "9.9.9"
+
 # ─────────────────────────────────────────
 section "Extension detection"
 # ─────────────────────────────────────────

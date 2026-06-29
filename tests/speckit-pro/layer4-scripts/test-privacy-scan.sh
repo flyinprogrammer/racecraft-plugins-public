@@ -149,7 +149,7 @@ is_sensitive_local_term() {
 
 emit_sensitive_terms_from_value() {
   local value="$1"
-  local part compact lower i
+  local part compact lower i window
 
   while IFS= read -r part; do
     lower=$(printf '%s' "$part" | tr '[:upper:]' '[:lower:]')
@@ -169,9 +169,17 @@ emit_sensitive_terms_from_value() {
         ;;
     esac
 
-    if [ "${#compact}" -ge 12 ]; then
-      for ((i = 0; i <= ${#compact} - 8; i++)); do
-        printf '%s\n' "${compact:i:8}"
+    # Sliding-window fragments catch partial identity leaks — a substring of the
+    # identity committed without the full token. Values containing a
+    # non-alphabetic character (emails, paths, UUIDs) are distinctive enough at
+    # 8 chars. Purely alphabetic names need a longer 12-char window so a common
+    # English word embedded in a longer all-letter handle does not collide with
+    # unrelated repo text, while genuine partial leaks are still detected.
+    window=8
+    [[ "$compact" =~ ^[[:alpha:]]+$ ]] && window=12
+    if [ "${#compact}" -ge "$window" ]; then
+      for ((i = 0; i <= ${#compact} - window; i++)); do
+        printf '%s\n' "${compact:i:window}"
       done
     fi
   done < <(printf '%s' "$value" | tr -cs '[:alnum:]_.-' '\n')
@@ -219,6 +227,20 @@ assert_no_tooling_source_match() {
     _pass
   fi
 }
+
+section "sensitive-term fragment emission"
+
+# Guard against silently disabling partial-leak detection for purely alphabetic
+# identities. Uses a synthetic, non-identity value so this test does not itself
+# encode anyone's name. grep -x requires the window to be emitted as its own
+# line, so it fails if only the full token (not the sliding windows) is emitted.
+set_test "all-alpha identities still emit sliding-window fragments"
+alpha_fragments=$(emit_sensitive_terms_from_value "/qwertyuiopasdfgh/")
+if printf '%s\n' "$alpha_fragments" | grep -qx "qwertyuiopas"; then
+  _pass
+else
+  _fail "expected a 12-char window fragment for an all-alpha identity, got none"
+fi
 
 section "current tree privacy scan"
 
