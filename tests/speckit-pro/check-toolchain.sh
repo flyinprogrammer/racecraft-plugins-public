@@ -45,15 +45,17 @@ case "$MODE" in
     ;;
 esac
 
-FAILURES=0
+PASS_COUNT=0
+FAIL_COUNT=0
 
 pass() {
   printf 'PASS %-28s %s\n' "$1" "${2:-}"
+  PASS_COUNT=$((PASS_COUNT + 1))
 }
 
 fail() {
   printf 'FAIL %-28s %s\n' "$1" "${2:-}"
-  FAILURES=$((FAILURES + 1))
+  FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
 warn() {
@@ -117,10 +119,15 @@ check_jq() {
 
   version="$(jq --version 2>/dev/null || true)"
   numeric="$(printf '%s\n' "$version" | sed -E 's/^jq-?//; s/[^0-9.].*$//')"
-  if version_at_least "$numeric" 1 6; then
+  if ! version_at_least "$numeric" 1 6; then
+    fail "jq >= 1.6" "${version:-unknown}; install jq 1.6 or newer"
+    return
+  fi
+
+  if printf '{"ok":true}\n' | jq -e '.ok == true' >/dev/null 2>&1; then
     pass "jq >= 1.6" "$version ($path)"
   else
-    fail "jq >= 1.6" "${version:-unknown}; install jq 1.6 or newer"
+    fail "jq expression" "jq --version succeeded but a minimal expression failed"
   fi
 }
 
@@ -247,7 +254,12 @@ case "$MODE" in
     ;;
 esac
 
-if [ "$FAILURES" -gt 0 ]; then
-  printf 'toolchain check failed: %d issue(s)\n' "$FAILURES" >&2
+TOTAL_COUNT=$((PASS_COUNT + FAIL_COUNT))
+if [ "$FAIL_COUNT" -eq 0 ]; then
+  printf '\ncheck-toolchain: %d/%d passed\n' "$PASS_COUNT" "$TOTAL_COUNT"
+else
+  printf '\ncheck-toolchain: %d/%d passed (%d failed)\n' \
+    "$PASS_COUNT" "$TOTAL_COUNT" "$FAIL_COUNT"
+  printf 'toolchain check failed: %d issue(s)\n' "$FAIL_COUNT" >&2
   exit 1
 fi

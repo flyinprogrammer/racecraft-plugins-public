@@ -128,10 +128,70 @@ should_run() {
   fi
 }
 
-if [ "${SPECKIT_SKIP_TOOLCHAIN_CHECK:-0}" != "1" ]; then
-  if should_run 1 || should_run 4 || should_run 5 || should_run 7; then
-    bash "$TESTS_DIR/check-toolchain.sh" --mode tests
+print_summary() {
+  GRAND_TOTAL=$((TOTAL_PASS + TOTAL_FAIL))
+
+  printf "\n${BOLD}%s${RESET}\n" "════════════════════════════════════════"
+  printf "${BOLD}speckit-pro test suite${RESET}: "
+  if [ "$TOTAL_FAIL" -eq 0 ] && [ "$GRAND_TOTAL" -gt 0 ]; then
+    printf "${GREEN}%d/%d passed${RESET}\n" "$TOTAL_PASS" "$GRAND_TOTAL"
+  else
+    printf "${RED}%d/%d passed (%d failed)${RESET}\n" \
+      "$TOTAL_PASS" "$GRAND_TOTAL" "$TOTAL_FAIL"
   fi
+
+  for lr in "${LAYER_RESULTS[@]}"; do
+    printf "  %s\n" "$lr"
+  done
+  printf "\n"
+}
+
+run_toolchain_preflight() {
+  if [ "${SPECKIT_SKIP_TOOLCHAIN_CHECK:-0}" = "1" ]; then
+    return 0
+  fi
+  if ! should_run 1 && ! should_run 4 && ! should_run 5 && ! should_run 7; then
+    return 0
+  fi
+
+  printf "\n${BOLD}${CYAN}Toolchain Preflight${RESET}\n"
+  printf "%s\n" "────────────────────────────────────────"
+
+  local output exit_code=0 summary passed total failed
+  output=$(bash "$TESTS_DIR/check-toolchain.sh" --mode tests 2>&1) || exit_code=$?
+  summary=$(echo "$output" | grep -E '^check-toolchain: [0-9]+/[0-9]+ passed' | tail -1 || true)
+
+  if [ -n "$summary" ]; then
+    passed=$(echo "$summary" | grep -oE '[0-9]+/[0-9]+' | head -1 | cut -d/ -f1)
+    total=$(echo "$summary" | grep -oE '[0-9]+/[0-9]+' | head -1 | cut -d/ -f2)
+    failed=$((total - passed))
+    TOTAL_PASS=$((TOTAL_PASS + passed))
+    TOTAL_FAIL=$((TOTAL_FAIL + failed))
+    LAYER_RESULTS+=("toolchain: ${passed}/${total}")
+
+    if [ "$failed" -eq 0 ] && [ "$exit_code" -eq 0 ]; then
+      printf "  ${GREEN}PASS${RESET} check-toolchain (%d/%d)\n" "$passed" "$total"
+    else
+      printf "  ${RED}FAIL${RESET} check-toolchain (%d/%d, %d failed)\n" "$passed" "$total" "$failed"
+      echo "$output" | { grep -E '^FAIL' || true; } | head -5 | while read -r line; do
+        printf "       %s\n" "$line"
+      done
+      return 1
+    fi
+  else
+    TOTAL_FAIL=$((TOTAL_FAIL + 1))
+    LAYER_RESULTS+=("toolchain: 0/1")
+    printf "  ${RED}FAIL${RESET} check-toolchain (exit %d, no summary)\n" "$exit_code"
+    echo "$output" | tail -3 | while read -r line; do
+      printf "       %s\n" "$line"
+    done
+    return 1
+  fi
+}
+
+if ! run_toolchain_preflight; then
+  print_summary
+  exit 1
 fi
 
 # ─────────────────────────────────────────
@@ -400,24 +460,5 @@ if should_run 7; then
   fi
 fi
 
-# ─────────────────────────────────────────
-# Summary
-# ─────────────────────────────────────────
-
-GRAND_TOTAL=$((TOTAL_PASS + TOTAL_FAIL))
-
-printf "\n${BOLD}%s${RESET}\n" "════════════════════════════════════════"
-printf "${BOLD}speckit-pro test suite${RESET}: "
-if [ "$TOTAL_FAIL" -eq 0 ] && [ "$GRAND_TOTAL" -gt 0 ]; then
-  printf "${GREEN}%d/%d passed${RESET}\n" "$TOTAL_PASS" "$GRAND_TOTAL"
-else
-  printf "${RED}%d/%d passed (%d failed)${RESET}\n" \
-    "$TOTAL_PASS" "$GRAND_TOTAL" "$TOTAL_FAIL"
-fi
-
-for lr in "${LAYER_RESULTS[@]}"; do
-  printf "  %s\n" "$lr"
-done
-printf "\n"
-
+print_summary
 [ "$TOTAL_FAIL" -eq 0 ]
