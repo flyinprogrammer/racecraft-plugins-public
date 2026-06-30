@@ -161,40 +161,39 @@ run_toolchain_preflight() {
   printf "\n${BOLD}${CYAN}Toolchain Preflight${RESET}\n"
   printf "%s\n" "────────────────────────────────────────"
 
-  local output exit_code=0 summary passed total failed
+  # The preflight is a deterministic gate, not a scored layer. Its result is
+  # NOT folded into the suite total: optional tools vary by machine, and CI runs
+  # the preflight as a separate step (SPECKIT_SKIP_TOOLCHAIN_CHECK=1), so folding
+  # it in would make the headline "X/Y passed" differ across machines and between
+  # local and CI for the same commit. We gate on exit code only.
+  local output exit_code=0
   output=$(bash "$TESTS_DIR/check-toolchain.sh" --mode "$mode" 2>&1) || exit_code=$?
-  summary=$(echo "$output" | grep -E '^check-toolchain: [0-9]+/[0-9]+ passed' | tail -1 || true)
 
-  if [ -n "$summary" ]; then
-    passed=$(echo "$summary" | grep -oE '[0-9]+/[0-9]+' | head -1 | cut -d/ -f1)
-    total=$(echo "$summary" | grep -oE '[0-9]+/[0-9]+' | head -1 | cut -d/ -f2)
-    failed=$((total - passed))
-    TOTAL_PASS=$((TOTAL_PASS + passed))
-    TOTAL_FAIL=$((TOTAL_FAIL + failed))
-    LAYER_RESULTS+=("toolchain: ${passed}/${total}")
+  if [ "$exit_code" -eq 0 ]; then
+    printf "  ${GREEN}PASS${RESET} check-toolchain (gate; not counted in suite total)\n"
+    LAYER_RESULTS+=("toolchain preflight: ok (gate, not counted)")
+    return 0
+  fi
 
-    if [ "$failed" -eq 0 ] && [ "$exit_code" -eq 0 ]; then
-      printf "  ${GREEN}PASS${RESET} check-toolchain (%d/%d)\n" "$passed" "$total"
-    else
-      printf "  ${RED}FAIL${RESET} check-toolchain (%d/%d, %d failed)\n" "$passed" "$total" "$failed"
-      echo "$output" | { grep -E '^FAIL' || true; } | head -5 | while read -r line; do
-        printf "       %s\n" "$line"
-      done
-      return 1
-    fi
+  printf "  ${RED}FAIL${RESET} check-toolchain (gate)\n"
+  local fails
+  fails=$(echo "$output" | grep -E '^FAIL' || true)
+  if [ -n "$fails" ]; then
+    echo "$fails" | head -5 | while read -r line; do
+      printf "       %s\n" "$line"
+    done
   else
-    TOTAL_FAIL=$((TOTAL_FAIL + 1))
-    LAYER_RESULTS+=("toolchain: 0/1")
-    printf "  ${RED}FAIL${RESET} check-toolchain (exit %d, no summary)\n" "$exit_code"
     echo "$output" | tail -3 | while read -r line; do
       printf "       %s\n" "$line"
     done
-    return 1
   fi
+  LAYER_RESULTS+=("toolchain preflight: FAILED (gate)")
+  return 1
 }
 
 if ! run_toolchain_preflight; then
-  print_summary
+  printf "\n${RED}Toolchain preflight failed — aborting before running any layer.${RESET}\n" >&2
+  printf "Fix the tools listed above, or set SPECKIT_SKIP_TOOLCHAIN_CHECK=1 to bypass the gate.\n" >&2
   exit 1
 fi
 

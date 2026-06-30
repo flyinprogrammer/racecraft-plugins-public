@@ -75,6 +75,13 @@ warn() {
   printf 'WARN %-28s %s\n' "$1" "${2:-}"
 }
 
+# Optional tools that happen to be present are reported but NOT scored, so the
+# pass/total count is identical across machines regardless of which optional
+# tools are installed. Scoring them would make the number environment-dependent.
+info() {
+  printf 'INFO %-28s %s\n' "$1" "${2:-}"
+}
+
 cmd_path() {
   command -v "$1" 2>/dev/null || true
 }
@@ -93,7 +100,7 @@ optional_cmd() {
   local label="$1" cmd="$2" note="$3" path
   path="$(cmd_path "$cmd")"
   if [ -n "$path" ]; then
-    pass "$label" "$path"
+    info "$label" "$path"
   else
     warn "$label" "not found; required only for $note"
   fi

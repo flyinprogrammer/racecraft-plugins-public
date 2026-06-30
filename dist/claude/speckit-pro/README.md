@@ -51,16 +51,11 @@ You need:
 - `sha256sum` or `shasum` for PR-packet fingerprint checks
 - Standard Unix text tools, including version-aware `sort -V`
 
-From a source checkout, before running the deterministic test suite, use the
-repository toolchain preflight:
-
-```bash
-bash tests/speckit-pro/check-toolchain.sh --mode tests
-```
-
-Maintainer-only docs validation also uses Node 22 or newer, Corepack,
-`pnpm@10.25.0`, and Playwright. Those tools are not required just to install or
-run the plugin in a project.
+The tools above are all you need to install and run the plugin in a project.
+Contributors working from a source checkout have an additional maintainer-only
+toolchain (Node, Corepack, `pnpm`, Playwright) plus a preflight that verifies
+both — see the
+[contributing guide](https://racecraft-lab.github.io/racecraft-plugins-public/contribute-and-release/).
 
 Spec Kit's official docs recommend installing from the GitHub repository. This
 plugin's examples use the same GitHub source:
