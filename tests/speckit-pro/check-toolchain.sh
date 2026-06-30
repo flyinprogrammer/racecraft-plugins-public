@@ -3,6 +3,7 @@
 #
 # Usage:
 #   bash tests/speckit-pro/check-toolchain.sh --mode tests
+#   bash tests/speckit-pro/check-toolchain.sh --mode shell
 #   bash tests/speckit-pro/check-toolchain.sh --mode docs
 #   bash tests/speckit-pro/check-toolchain.sh --mode all
 
@@ -11,6 +12,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MODE="tests"
+
+print_help() {
+  cat <<'EOF'
+check-toolchain.sh - Report and validate local tools used by speckit-pro checks.
+
+Usage:
+  bash tests/speckit-pro/check-toolchain.sh --mode tests
+  bash tests/speckit-pro/check-toolchain.sh --mode shell
+  bash tests/speckit-pro/check-toolchain.sh --mode docs
+  bash tests/speckit-pro/check-toolchain.sh --mode all
+EOF
+}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -27,7 +40,7 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,10p' "$0" | sed 's/^# \?//'
+      print_help
       exit 0
       ;;
     *)
@@ -38,7 +51,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$MODE" in
-  tests|docs|all) ;;
+  tests|shell|docs|all) ;;
   *)
     printf 'Invalid --mode: %s\n' "$MODE" >&2
     exit 2
@@ -166,8 +179,9 @@ check_yaml_validator() {
   fi
 }
 
-check_test_tools() {
-  printf 'speckit-pro toolchain check (tests)\n'
+check_shell_tools() {
+  local label="${1:-shell}"
+  printf 'speckit-pro toolchain check (%s)\n' "$label"
   check_bash
   check_jq
   require_cmd "git" git
@@ -179,12 +193,16 @@ check_test_tools() {
 
   check_sort_version_semantics
   check_checksum_tool
-  check_yaml_validator
 
   optional_cmd "gh" gh "PR creation, review-comment workflows, and live GitHub-backed checks"
   optional_cmd "specify" specify "installed-plugin Spec Kit workflows"
   optional_cmd "claude" claude "Claude live eval and integration fixture modes"
   optional_cmd "codex" codex "Codex trigger, functional, and efficiency eval modes"
+}
+
+check_test_tools() {
+  check_shell_tools "tests"
+  check_yaml_validator
 }
 
 check_docs_tools() {
@@ -244,6 +262,9 @@ cd "$REPO_ROOT"
 case "$MODE" in
   tests)
     check_test_tools
+    ;;
+  shell)
+    check_shell_tools "shell"
     ;;
   docs)
     check_docs_tools

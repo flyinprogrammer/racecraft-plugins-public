@@ -167,18 +167,24 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Install latest jq release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           jq_metadata="$(
             python3 - <<'PY'
           import json
+          import os
           import sys
           from urllib.request import Request, urlopen
 
           request = Request(
               "https://api.github.com/repos/jqlang/jq/releases/latest",
-              headers={"Accept": "application/vnd.github+json"},
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+              },
           )
           with urlopen(request, timeout=30) as response:
               release = json.load(response)

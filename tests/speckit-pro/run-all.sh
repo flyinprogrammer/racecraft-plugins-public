@@ -147,18 +147,22 @@ print_summary() {
 }
 
 run_toolchain_preflight() {
+  local mode="shell"
   if [ "${SPECKIT_SKIP_TOOLCHAIN_CHECK:-0}" = "1" ]; then
     return 0
   fi
   if ! should_run 1 && ! should_run 4 && ! should_run 5 && ! should_run 7; then
     return 0
   fi
+  if should_run 1; then
+    mode="tests"
+  fi
 
   printf "\n${BOLD}${CYAN}Toolchain Preflight${RESET}\n"
   printf "%s\n" "────────────────────────────────────────"
 
   local output exit_code=0 summary passed total failed
-  output=$(bash "$TESTS_DIR/check-toolchain.sh" --mode tests 2>&1) || exit_code=$?
+  output=$(bash "$TESTS_DIR/check-toolchain.sh" --mode "$mode" 2>&1) || exit_code=$?
   summary=$(echo "$output" | grep -E '^check-toolchain: [0-9]+/[0-9]+ passed' | tail -1 || true)
 
   if [ -n "$summary" ]; then

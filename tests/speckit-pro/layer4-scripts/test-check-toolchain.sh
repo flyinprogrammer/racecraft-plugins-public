@@ -44,6 +44,20 @@ make_path_fixture() {
   printf '%s\n' "$bin_dir"
 }
 
+write_fake_python_without_yaml() {
+  local bin_dir="$1"
+  cat > "$bin_dir/python3" <<'SH'
+#!/bin/sh
+if [ "${1:-}" = "-c" ]; then
+  case "${2:-}" in
+    *"import yaml"*) exit 1 ;;
+  esac
+fi
+exit 0
+SH
+  chmod 0755 "$bin_dir/python3"
+}
+
 write_fake_jq() {
   local bin_dir="$1" version="$2" expression_exit="${3:-0}"
   cat > "$bin_dir/jq" <<SH
@@ -72,12 +86,22 @@ assert_eq "0" "$LAST_EXIT"
 set_test "help lists supported modes"
 assert_contains "$LAST_OUTPUT" "--mode all"
 
+set_test "help does not include shell code"
+assert_not_contains "$LAST_OUTPUT" "set -euo pipefail"
+
 set_test "default tests mode exits 0"
 run_checker
 assert_eq "0" "$LAST_EXIT"
 
 set_test "default tests mode prints summary"
 assert_contains "$LAST_OUTPUT" "check-toolchain:"
+
+set_test "shell mode exits 0"
+run_checker --mode shell
+assert_eq "0" "$LAST_EXIT"
+
+set_test "shell mode labels output"
+assert_contains "$LAST_OUTPUT" "speckit-pro toolchain check (shell)"
 
 set_test "missing --mode value exits 2"
 run_checker --mode
@@ -133,5 +157,19 @@ assert_eq "1" "$LAST_EXIT"
 
 set_test "missing python3 prints diagnostic"
 assert_contains "$LAST_OUTPUT" "required command not found: python3"
+
+set_test "tests mode fails without YAML validator"
+missing_yaml_path="$(make_path_fixture missing-yaml python3)"
+rm -f "$missing_yaml_path/ruby"
+write_fake_python_without_yaml "$missing_yaml_path"
+run_checker_with_path "$missing_yaml_path" --mode tests
+assert_eq "1" "$LAST_EXIT"
+
+set_test "tests mode reports missing YAML validator"
+assert_contains "$LAST_OUTPUT" "yaml validator"
+
+set_test "shell mode does not require YAML validator"
+run_checker_with_path "$missing_yaml_path" --mode shell
+assert_eq "0" "$LAST_EXIT"
 
 test_summary
